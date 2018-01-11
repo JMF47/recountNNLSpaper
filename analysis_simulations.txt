@@ -264,6 +264,9 @@ simulate = function(rl, paired){
 
 }
 
+rls = c(37, 50, 75, 100, 150)
+sapply(rls, simulate, paired=1)
+
 ##########################################################################################
 ### Paired End (R)
 ##########################################################################################
@@ -474,3 +477,6 @@ simulate2 = function(rl, paired){
 	pheno = processPheno(table)
 	rse_tx = recountNNLS(pheno, jx_file=jx_file)
 }
+
+rls = c(37, 50, 75, 100, 150)
+sapply(rls, simulate, paired=2)
