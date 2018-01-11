@@ -1,5 +1,5 @@
 ##########################################################################################
-# HISAT2-StringTie
+# HISAT2(2.0.5)-StringTie(1.3.3b)
 ##########################################################################################
 ## Index
 cd /dcl01/leek/data/ta_poc/GencodeV25
@@ -24,7 +24,7 @@ do
 done < samples.txt
 
 ##########################################################################################
-# HISAT2-Cufflinks
+# HISAT2(2.0.5)-Cufflinks(2.2.1)
 ##########################################################################################
 ## Index
 cd /dcl01/leek/data/ta_poc/GencodeV25/hisat2-cufflinks
@@ -43,13 +43,13 @@ do
 	rm hisat2-cufflinks/"$f".sam
 	cufflinks -m 250 -s 25 --total-hits-norm --no-effective-length-correction --no-length-correction \
 	-o /dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/"$f" \
-	-G /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gtf \
+	-G /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3 \
 	hisat2-cufflinks/sorted/"$f".bam
 	rm hisat2-cufflinks/sorted/"$f".bam
 done < samples.txt
 
 ##########################################################################################
-# RSEM
+# RSEM(1.3.0 - bowtie 1.1.1)
 ##########################################################################################
 module load bowtie/1.1.1
 PATH=$PATH:/users/jmfu/RSEM-1.3.0
@@ -67,7 +67,7 @@ fi
 done < samples.txt
 
 ##########################################################################################
-# Kallisto
+# Kallisto (0.43.0)
 ##########################################################################################
 ## Index
 PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
@@ -86,7 +86,7 @@ do
 done < samples.txt
 
 ########################################################################
-### Salmon
+### Salmon (0.8.2)
 ########################################################################
 ## Index
 cd ~/Salmon-0.8.2_linux_x86_64/bin/
@@ -108,4 +108,83 @@ done < /dcl01/leek/data/ta_poc/geuvadis/samples.txt
 library(recountNNLS)
 pheno = processPheno('ERP001942')
 rse_tx = recountNNLS(pheno)
+
+##########################################################################################
+# compile results
+##########################################################################################
+library(rtracklayer)
+library(recountNNLS); library(SummarizedExperiment)
+load(getRseTx('ERP001942'))
+
+sample = 'ERR188412'
+tx_info = rowData(rse_tx)
+tx_list = rownames(rse_tx)
+rn = assays(rse_tx)$counts[,sample]
+st = import(paste0('/dcl01/leek/data/ta_poc/geuvadis/hisat2-stringtie/stringtie/', sample, '.st'), format="gtf")
+cl = import(paste0('/dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/', sample, '/transcripts.gtf'))
+rsem = read.table(paste0('/dcl01/leek/data/ta_poc/geuvadis/rsem/', sample, '.isoforms.results'), header=T)
+kallisto = read.table(paste0('/dcl01/leek/data/ta_poc/geuvadis/kallisto/', sample, '/abundance.tsv'), header=T)
+salmon = read.table(paste0('/dcl01/leek/data/ta_poc/geuvadis/salmon/', sample, '/quant.sf'), header=T)
+
+
+out = rn
+	st = st[st$type=="transcript"]
+	st_mat = match(tx_list, st$transcript_id)
+	st=as.numeric(st$cov[st_mat])
+	st = st*tx_info$tx_len/75
+	out = cbind(out, st)
+
+	cl = cl[cl$type=="transcript"]
+	cl_mat = match(tx_list, cl$transcript_id)
+	cl_cov=as.numeric(cl$cov[cl_mat])
+	cl_cts = cl_cov*tx_info$tx_len/75
+	out = cbind(out, cl)
+
+	rsem_mat = match(tx_list, rsem$transcript_id)
+	out = cbind(out, rsem=rsem$expected_count[rsem_mat])
+
+	kallisto_mat = match(tx_list, kallisto$target_id)
+	out = cbind(out, kl = kallisto$est_counts[kallisto_mat])
+
+	salmon_mat = match(tx_list, salmon$Name)
+	out = cbind(out, sl = salmon$NumReads[salmon_mat])
+
+
+	cor(out$out, out$kl, method="spearman", use="complete")
+	cor(out$out, out$st, method="spearman", use="complete")
+	cor(out$out, out$cl, method="spearman", use="complete")
+	cor(out$out, out$rsem, method="spearman", use="complete")
+	cor(out$out, out$sl, method="spearman", use="complete")
+		cor(out$kl, out$st, method="spearman", use="complete")
+		cor(out$kl, out$cl, method="spearman", use="complete")
+		cor(out$kl, out$rsem, method="spearman", use="complete")
+		cor(out$kl, out$sl, method="spearman", use="complete")
+			cor(out$st, out$cl, method="spearman", use="complete")
+			cor(out$st, out$rsem, method="spearman", use="complete")
+			cor(out$st, out$sl, method="spearman", use="complete")
+				cor(out$cl, out$rsem, method="spearman", use="complete")
+				cor(out$cl, out$sl, method="spearman", use="complete")
+					cor(out$rsem, out$sl, method="spearman", use="complete")
+	
+	apply(out, 2, function(x) sum(x>0, na.rm=T))
+
+	sum((out$out>0)*(out$kl>0), na.rm=T)
+	sum((out$out>0)*(out$st>0), na.rm=T)
+	sum((out$out>0)*(out$cl>0), na.rm=T)
+	sum((out$out>0)*(out$rsem>0), na.rm=T)
+	sum((out$out>0)*(out$sl>0), na.rm=T)
+		sum((out$kl>0)*(out$st>0), na.rm=T)
+		sum((out$kl>0)*(out$cl>0), na.rm=T)
+		sum((out$kl>0)*(out$rsem>0), na.rm=T)
+		sum((out$kl>0)*(out$sl>0), na.rm=T)
+			sum((out$st>0)*(out$cl>0), na.rm=T)
+			sum((out$st>0)*(out$rsem>0), na.rm=T)
+			sum((out$st>0)*(out$sl>0), na.rm=T)
+				sum((out$cl>0)*(out$rsem>0), na.rm=T)
+				sum((out$cl>0)*(out$sl>0), na.rm=T)
+					sum((out$rsem>0)*(out$sl>0), na.rm=T)
+
+
+
+
 
