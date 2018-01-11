@@ -1,0 +1,111 @@
+##########################################################################################
+# HISAT2-StringTie
+##########################################################################################
+## Index
+cd /dcl01/leek/data/ta_poc/GencodeV25
+gffread -w hg38_coding.fa -g hg38.fa gencodeV25.coding.gtf
+module load cufflinks/2.2.1 
+python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
+python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
+hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
+
+## Align + Quant
+annotation=/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3
+cd /dcl01/leek/data/ta_poc/geuvadis/
+while read f
+do
+	hisat2 --dta -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-stringtie/"$f".sam
+	samtools view -b hisat2-stringtie/"$f".sam > hisat2-stringtie/"$f".bam
+	samtools sort hisat2-stringtie/"$f".bam -o hisat2-stringtie/sorted/"$f".bam -O 'bam' -T "$f"
+	rm hisat2-stringtie/"$f".bam
+	rm hisat2-stringtie/"$f".sam
+	stringtie -o /dcl01/leek/data/ta_poc/geuvadis/hisat2-stringtie/stringtie/"$f".st -e -G $annotation hisat2-stringtie/sorted/"$f".bam
+	rm hisat2-stringtie/sorted/"$f".bam
+done < samples.txt
+
+##########################################################################################
+# HISAT2-Cufflinks
+##########################################################################################
+## Index
+cd /dcl01/leek/data/ta_poc/GencodeV25/hisat2-cufflinks
+hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
+
+## Align + Quant
+module load cufflinks/2.2.1
+annotation=/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3
+cd /dcl01/leek/data/ta_poc/geuvadis
+while read f
+do
+	hisat2 --dta-cufflinks -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-cufflinks/"$f".sam
+	samtools view -b hisat2-cufflinks/"$f".sam > hisat2-cufflinks/"$f".bam
+	samtools sort hisat2-cufflinks/"$f".bam -o hisat2-cufflinks/sorted/"$f".bam -O 'bam' -T "$f"
+	rm hisat2-cufflinks/"$f".bam
+	rm hisat2-cufflinks/"$f".sam
+	cufflinks -m 250 -s 25 --total-hits-norm --no-effective-length-correction --no-length-correction \
+	-o /dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/"$f" \
+	-G /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gtf \
+	hisat2-cufflinks/sorted/"$f".bam
+	rm hisat2-cufflinks/sorted/"$f".bam
+done < samples.txt
+
+##########################################################################################
+# RSEM
+##########################################################################################
+module load bowtie/1.1.1
+PATH=$PATH:/users/jmfu/RSEM-1.3.0
+cd /dcl01/leek/data/ta_poc/geuvadis/
+
+## Index
+cd /dcl01/leek/data/ta_poc/GencodeV25
+rsem-prepare-reference --gtf gencodeV25.coding.gtf --bowtie hg38.fa /dcl01/leek/data/ta_poc/rsem-index/rsem
+
+## Quant
+while read f
+do
+	rsem-calculate-expression -p 20 --paired-end <(zcat data/"$f"/"$f"_1.fastq.gz) <(zcat data/"$f"/"$f"_2.fastq.gz) /dcl01/leek/data/ta_poc/rsem-index/rsem rsem/"$f"
+fi
+done < samples.txt
+
+##########################################################################################
+# Kallisto
+##########################################################################################
+## Index
+PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
+index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
+base=/dcl01/leek/data/ta_poc/geuvadis/kallisto
+kallisto index -i $index /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa
+
+## Quant
+base=/dcl01/leek/data/ta_poc/geuvadis/kallisto
+fastq_base=/dcl01/leek/data/ta_poc/geuvadis/data
+index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
+cd /dcl01/leek/data/ta_poc/geuvadis
+while read f
+do
+	kallisto quant -t 20 -i $index -o $base/$f $fastq_base/"$f"/"$f"_1.fastq.gz $fastq_base/"$f"/"$f"_2.fastq.gz
+done < samples.txt
+
+########################################################################
+### Salmon
+########################################################################
+## Index
+cd ~/Salmon-0.8.2_linux_x86_64/bin/
+out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
+./salmon index -t /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa -i $out_dir --type quasi -k 31
+
+## Quant
+fastq_base=/dcl01/leek/data/ta_poc/geuvadis/data
+index=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
+cd ~/Salmon-0.8.2_linux_x86_64/bin/
+while read f
+do
+	./salmon quant -p 20 -i $index -l A -1 $fastq_base/$f/$f'_1.fastq.gz' -2 $fastq_base/$f/$f'_2.fastq.gz'  -o /dcl01/leek/data/ta_poc/geuvadis/salmon/'$f'
+done < /dcl01/leek/data/ta_poc/geuvadis/samples.txt
+
+##########################################################################################
+# recountNNLS
+##########################################################################################
+library(recountNNLS)
+pheno = processPheno('ERP001942')
+rse_tx = recountNNLS(pheno)
+
