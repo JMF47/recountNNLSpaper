@@ -1,4 +1,9 @@
 ##########################################################################################
+module load cufflinks/2.2.1
+module load python/2.6.6
+module load bowtie/1.1.1
+PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0:/users/jmfu/RSEM-1.3.0
+##########################################################################################
 ### Subset to coding transcripts on chr1 and chr14
 ##########################################################################################
 rm(list=ls())
@@ -38,29 +43,6 @@ sim_info$reads = round(sim_info$geneReads*sim_info$abundance)
 write.table(sim_info, row.names=F, file="sim_info.txt")
 
 ##########################################################################################
-### Preparing alignment/quantification indices (bash)
-##########################################################################################
-cd /dcl01/leek/data/ta_poc/GencodeV25
-gffread -w sim.fa -g hg38.fa gencodeV25.sim.gtf
-## HISAT2
-module load cufflinks/2.2.1 
-python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.sim.gtf > gencodeV25.sim.exons
-python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.sim.gtf > gencodeV25.sim.splice.sites
-hisat2-build --exon gencodeV25.sim.exons --ss gencodeV25.sim.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38_sim.fasta /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-detailed
-samtools faidx hg38_sim.fasta
-gffread -w sim.fa -g hg38_sim.fasta gencodeV25.sim.gtf
-
-## Kallisto
-kallisto index -i hg38_sim_kallisto_ind sim.fa
-
-## Salmon
-/users/jmfu/Salmon-0.8.2_linux_x86_64/bin/salmon index -t sim.fa -i hg38_sim_salmon_ind --type quasi -k 31
-
-## RSEM
-rsem-prepare-reference --gtf gencodeV25.sim.gtf --bowtie hg38_sim.fasta rsem_sim_ind
-
-
-##########################################################################################
 ### Single End (R)
 ##########################################################################################
 rm(list=ls())
@@ -76,7 +58,7 @@ simulate = function(rl, paired){
 
 	txs = import("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.gtf")
 	txs = txs[txs$type=="transcript"]
-	sim_info = read.table("/dcl01/leek/data/ta_poc/simulation/sim_info.txt", header=T)
+	sim_info = read.table("/dcl01/leek/data/ta_poc/geuvadis/simulation/sim_info.txt", header=T)
 	ind = which(sim_info$reads>0)
 	fasta = fasta[ind]
 	sim_info = sim_info[ind,]
@@ -275,7 +257,7 @@ library(polyester); library(rtracklayer); library(Biostrings); library(stringr);
 
 simulate2 = function(rl, paired){
 	condition = paste0(rl, "_", paired)
-	samples = c(paste0("sample_0", 1:9), paste0("sample_", 11:20))
+	samples = paste0("sample_0", 1)
 	fasta = import("/dcl01/leek/data/ta_poc/GencodeV25/sim.fa", format="fasta")
 	outdir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition)
 	dir.create(outdir)
@@ -289,7 +271,9 @@ simulate2 = function(rl, paired){
 	sim_info = sim_info[ind,]
 	writeXStringSet(fasta, "tx.fasta")
 	set.seed(rl+paired)
-	simulate_experiment('tx.fasta', reads_per_transcript=sim_info$reads, num_reps=c(10, 10), fold_changes=1, outdir="reads", paired=(paired==2), readlen=rl)
+	# simulate_experiment('tx.fasta', reads_per_transcript=sim_info$reads, num_reps=c(2, 2), fold_changes=1, outdir="reads", paired=(paired==2), readlen=rl)
+	count_mat = cbind(sim_info$reads)
+	simulate_experiment_countmat('tx.fasta',readmat=count_mat, outdir="reads", paired=(paired==2), readlen=rl)
 
 	##########################################################################################
 	### Rail-RNA
@@ -298,7 +282,7 @@ simulate2 = function(rl, paired){
 	man = cbind(paste0(files, "_1.fasta"), 0, paste0(files, "_2.fasta"), 0, samples)
 	rail_dir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/rail")
 	dir.create(rail_dir)
-	write.table(man, sep="\t", quote=F, col.names=F, row.names=F, file=paste0(rail_dir, "/manifest.txt"))
+	write.table(man, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE, file=paste0(rail_dir, "/manifest.txt"))
 
 	dir.create(paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/recount/"))
 	dir.create(paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/recount/logs"))
@@ -309,17 +293,10 @@ simulate2 = function(rl, paired){
 	output = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/recount/", samples)
 	sapply(output, dir.create)
 	cmds = cbind("sh", script, tool, bins, bw, output)
-	write.table(cmds, sep="\t", quote=F, col.names=F, row.names=F, file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/recount/commands.txt"))
+	write.table(cmds, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE, file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/recount/commands.txt"))
 	index="/dcl01/leek/data/HG38_rail/Homo_sapiens/UCSC/hg38/Sequence/"
 	setwd(rail_dir)
-	system2("rail-rna", paste0("go local -x ", index, "/BowtieIndex/genome ", index, "/Bowtie2Index/genome -m ", rail_dir, "/manifest.txt"))
-
-	system2("cp", paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/archive/rl37_1_cov10_tx10/recount/.rl37_1_cov10_tx10.sh ", outdir, "/recount/.", condition, ".sh"))
-
-	system2("sed", paste0("-i 's/rl37_1_cov10_tx10/", condition,"/g' ", outdir, "/recount/.", condition,".sh"))
-	system2("sed", paste0("-i 's/-t 1:10/-t 1:", length(samples), "/g' ", outdir, "/recount/.", condition,".sh"))
-	system2("sed", paste0("-i 's/-N /-N sim/g' ", outdir, "/recount/.", condition,".sh"))
-	system2("qsub", paste0(outdir, "/recount/.", condition,".sh"))
+	system2("rail-rna", paste0("go local -x ", index, "/BowtieIndex/genome ", index, "/Bowtie2Index/genome -m ", "manifest.txt"))
 
 
 	##########################################################################################
@@ -471,12 +448,240 @@ simulate2 = function(rl, paired){
 	##########################################################################################
 	### recountNNLS
 	##########################################################################################
-	bw = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/', rl, '_', paired, '/rail/rail-rna_out/coverage_bigwigs/sample_01.bw')
+	bw = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/', rl, '_', paired, '/rail/rail-rna_out/coverage_bigwigs/sample_0', 1, '.bw')
 	jx_file = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/', rl, '_', paired, '/rail/rail-rna_out/cross_sample_results')
-	table = data.frame(project=rl, run=paired, bigwig_path=bw, rls=37, paired_end=(paired==2))
+	table = data.frame(project=rl, run=paired, bigwig_path=bw, rls=rl, paired_end=(paired==2))
 	pheno = processPheno(table)
-	rse_tx = recountNNLS(pheno, jx_file=jx_file)
+	
+	load("/dcl01/leek/data/ta_poc/GencodeV25/matrix_bundle_50.rda")
+	gene_mat = gene_mat_50
+	rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=10)
+	rse = rse_tx
+	save(rse, file=paste0("~/recountNNLS_", rl, "_", paired, ".rda"))
 }
 
 rls = c(37, 50, 75, 100, 150)
 sapply(rls, simulate2, paired=2)
+
+
+###
+library(stringr)
+library(recountNNLS)
+library(SummarizedExperiment)
+id = "50_2"
+paired = str_detect(id, "_2")
+rl = as.numeric(str_replace(id, "_.*", ""))
+setwd('/dcl01/leek/data/ta_poc/geuvadis/simulation')
+load("/dcl01/leek/data/ta_poc/tx_wids.rda")
+load("~/50_2.sim")
+tab = sim; colnames(tab) = c("t_id", "reads")
+
+setwd(id)
+load("kallisto/kallisto_reads.rda")
+kallisto_sub = counts_kallisto[match(tab$t_id, rownames(counts_kallisto)),]
+load(paste0("~/recountNNLS_", id, ".rda"))
+tx_info = rowData(rse); tab$gene_id = tx_info$gene_id[match(tab$t_id, tx_info$tx_name)]
+reads = assays(rse)$counts; us_sub = apply(reads[match(tab$t_id, rownames(reads)),,drop=FALSE], 2, as.numeric)
+load(paste0("recount/reads_weight1-", rl, ".rda")); us_cts = lapply(reads_list, function(x) x[[1]]); us = do.call(rbind, us_cts); us_sub = us[match(tab$t_id, rownames(us)),1,drop=F]
+load("stringtie/hisat2_cov-e.rda")
+st_sub = info[match(tab$t_id, info[,1]),2, drop=FALSE]
+st_sub = apply(st_sub, 2, as.numeric); wids = as.numeric(as.character(tx_wids[match(tab$t_id, tx_wids[,1]), 2])); st_sub = st_sub*wids/rl
+load("rsem/rsem_reads.rda")
+rsem_sub = info[match(tab$t_id, rownames(info)),,drop=F]
+load("salmon/salmon_reads.rda")
+salmon_sub = salmon[match(tab$t_id, salmon[,1]), 2, drop=F]
+load("hisat2/cufflinks/hisat_cufflinks_cov.rda")
+cufflinks_sub = info[match(tab$t_id, info[,1]), 2, drop=F]
+cufflinks_sub = apply(cufflinks_sub, 2, as.numeric); wids = as.numeric(as.character(tx_wids[match(tab$t_id, tx_wids[,1]), 2])); cufflinks_sub = cufflinks_sub*wids/rl
+
+if(paired==T){
+            us_sub = us_sub/2
+            st_sub = st_sub/2
+            cufflinks_sub = cufflinks_sub/2
+      }
+real = round(tab$reads)
+
+	us_err = us_sub[,1] - real
+	kallisto_err = kallisto_sub[,1] - real
+	st_err = st_sub[,1] - real
+	rsem_err = rsem_sub[,1] - real
+	salmon_err = salmon_sub[,1] - real
+	cufflinks_err = cufflinks_sub[,1]-real
+
+	tss = sum((real-mean(real))^2)
+	rss_us = sum((us_err-mean(us_err, na.rm=T))^2, na.rm=T)
+	rss_kallisto = sum((kallisto_err-mean(kallisto_err))^2)
+	rss_st = sum((st_err-mean(st_err))^2)
+	rss_rsem = sum((rsem_err-mean(rsem_err))^2)
+	rss_salmon = sum((salmon_err-mean(salmon_err))^2)
+	rss_cufflinks = sum((cufflinks_err-mean(cufflinks_err, na.rm=T))^2, na.rm=T)
+
+	r2_us = 1-rss_us/tss
+	r2_kallisto = 1-rss_kallisto/tss
+	r2_st = 1-rss_st/tss
+	r2_rsem = 1-rss_rsem/tss
+	r2_salmon = 1-rss_salmon/tss
+	r2_cufflinks = 1-rss_cufflinks/tss
+
+	rmse_us = signif(sqrt(mean(us_err^2, na.rm=T)), 3)
+	rmse_kallisto = signif(sqrt(mean(kallisto_err^2, na.rm=T)), 3)
+	rmse_st = signif(sqrt(mean(st_err^2, na.rm=T)), 3)
+	rmse_rsem = signif(sqrt(mean(rsem_err^2, na.rm=T)), 3)
+	rmse_salmon = signif(sqrt(mean(salmon_err^2, na.rm=T)), 3)
+	rmse_cufflinks= signif(sqrt(mean(cufflinks_err^2, na.rm=T)), 3)
+
+	 png(paste0(id, "_paper2.png"), width=600, height=800, units = "px", pointsize=18)
+	 bord = 12
+	 cs=0.1
+      layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 1, 2:25), nrow=8, byrow=F), heights=c(1, 4, 4, 4, 4, 4, 4, 1), widths=c(1.5, 4, 4, 1.5))
+      par(mar=rep(0,4))
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      end = "Single End"
+      if(paired==T){end="Paired End"}
+      text(x=0.4, y=0.5, srt=90, paste0(rl, "bp ", end, " Simulation Results"), cex=2, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.5, y=0.8, pos=1, "Tx Level", cex=2)
+
+      A = log(us_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(us_sub[,1]+1, 2) - log(real+1, 2)
+
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("recountNNLS \nRMSE: ", rmse_us), xlab="MA Plot: Truth - LM",
+      xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+
+      A = log(kallisto_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(kallisto_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.05), main = paste0("Kallisto \nRMSE: ", rmse_kallisto), xlab="MA Plot Truth - Kallisto",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+
+      A = log(st_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(st_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.05),main = paste0("HISAT2-StringTie \nRMSE: ", rmse_st), xlab="MA Plot Truth - Hisat-Stringtie",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+
+      A = log(cufflinks_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(cufflinks_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.05),main = paste0("HISAT2-Cufflinks \nRMSE: ", rmse_cufflinks), xlab="MA Plot Truth - cufflinks",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+
+      A = log(rsem_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(rsem_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.05),main = paste0("RSEM \nRMSE: ", rmse_rsem), xlab="MA Plot Truth - RSEM",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+
+      A = log(salmon_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(salmon_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.05),main = paste0("Salmon \nRMSE: ", rmse_salmon), xlab="MA Plot Truth - salmon",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+      axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2),
+            labels=parse(text = c(1, 10, 100, '10^3', '10^4', '10^5', '10^6')))
+
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.5, y=0.8, pos=1, "Gene Level", cex=2)
+
+	#########
+	bord = 16.5
+
+	us_sub = cbind(by(us_sub[,1], tab$gene_id, sum))
+	kallisto_sub = cbind(by(kallisto_sub[,1], tab$gene_id, sum))
+	st_sub = cbind(by(st_sub[,1], tab$gene_id, sum))
+	rsem_sub = cbind(by(rsem_sub[,1], tab$gene_id, sum))
+	salmon_sub = cbind(by(salmon_sub[,1], tab$gene_id, sum))
+	cufflinks_sub = cbind(by(cufflinks_sub[,1], tab$gene_id, sum))
+	real = by(real, tab$gene_id, sum)
+
+	us_err = us_sub[,1] - real
+	kallisto_err = kallisto_sub[,1] - real
+	st_err = st_sub[,1] - real
+	rsem_err = rsem_sub[,1] - real
+	salmon_err = salmon_sub[,1] - real
+	cufflinks_err = cufflinks_sub[,1] - real
+
+	rmse_us = signif(sqrt(mean(us_err^2, na.rm=T)), 3)
+	rmse_kallisto = signif(sqrt(mean(kallisto_err^2, na.rm=T)), 3)
+	rmse_st = signif(sqrt(mean(st_err^2, na.rm=T)), 3)
+	rmse_rsem = signif(sqrt(mean(rsem_err^2, na.rm=T)), 3)
+	rmse_salmon = signif(sqrt(mean(salmon_err^2, na.rm=T)), 3)
+	rmse_cufflinks = signif(sqrt(mean(cufflinks_err^2, na.rm=T)), 3)
+
+	 A = log(us_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(us_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("recountNNLS \nRMSE: ", rmse_us), xlab="MA Plot: Truth - LM",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+
+      A = log(kallisto_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(kallisto_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("Kallisto \nRMSE: ", rmse_kallisto), xlab="MA Plot Truth - Kallisto",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+
+      A = log(st_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(st_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("HISAT2-StringTie \nRMSE: ", rmse_st), xlab="MA Plot Truth - Hisat-Stringtie",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+
+      A = log(cufflinks_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(cufflinks_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("HISAT2-Cufflinks \nRMSE: ", rmse_cufflinks), xlab="MA Plot Truth - RSEM",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+
+      A = log(rsem_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(rsem_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("RSEM \nRMSE: ", rmse_rsem), xlab="MA Plot Truth - RSEM",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+
+      A = log(salmon_sub[,1]+1, 2) + log(real+1, 2)
+      M = log(salmon_sub[,1]+1, 2) - log(real+1, 2)
+      plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("Salmon \nRMSE: ", rmse_salmon), xlab="MA Plot Truth - RSEM",
+           xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
+      abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+            labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
+      axis(side=1, at = log(c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000), 2),
+            labels=parse(text = c(10, 100, '10^3', '10^4', '10^5', '10^6', '10^7', '10^8', '10^9')))
+
+      par(xpd=NA)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "recountNNLS", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "Kallisto", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "H2-StringTie", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "H2-Cufflinks", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "RSEM", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "Salmon", cex=1.4, pos=3)
+
+      par(xpd=F)
+      dev.off()
+

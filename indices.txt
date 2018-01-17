@@ -1,0 +1,67 @@
+##########################################################################################
+##### Full hg38 genome
+##########################################################################################
+
+cd /dcl01/leek/data/ta_poc/GencodeV25
+hisat2-build -f /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-index-genome-hg38/hisat2-ind
+
+##########################################################################################
+##### Coding genes [GencodeV25 Full]
+##########################################################################################
+
+## HISAT2 ################################################################################
+cd /dcl01/leek/data/ta_poc/GencodeV25
+gffread -w sim.fa -g hg38.fa gencodeV25.coding.gtf
+python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
+python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
+hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites \
+	/dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
+
+## Kallisto ##############################################################################
+PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
+index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
+kallisto index -i $index /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa
+
+## Salmon ################################################################################
+source /users/jmfu/tbb2018_20171205oss/bin/tbbvars.sh intel64 linux auto_tbbroot
+cd ~/Salmon-0.8.2_linux_x86_64/bin/
+out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
+./salmon index -t /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa -i $out_dir --type quasi -k 31
+
+## RSEM ##################################################################################
+module load bowtie/1.1.1
+PATH=$PATH:/users/jmfu/RSEM-1.3.0
+cd /dcl01/leek/data/ta_poc/geuvadis/
+cd /dcl01/leek/data/ta_poc/GencodeV25
+rsem-prepare-reference --gtf gencodeV25.coding.gtf --bowtie hg38.fa /dcl01/leek/data/ta_poc/rsem-index/rsem
+
+##########################################################################################
+##### Coding genes [GencodeV25, chr1+chr14, simulations]
+##########################################################################################
+
+## HISAT2 ################################################################################
+samtools faidx hg38_sim.fasta
+gffread -w sim.fa -g hg38_sim.fasta gencodeV25.sim.gtf
+python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.sim.gtf > gencodeV25.sim.exons
+python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.sim.gtf > gencodeV25.sim.splice.sites
+hisat2-build --exon gencodeV25.sim.exons --ss gencodeV25.sim.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38_sim.fasta \
+	/dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-detailed
+
+## Kallisto ##############################################################################
+PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
+kallisto index -i hg38_sim_kallisto_ind /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.sim.fa
+
+## Salmon ################################################################################
+source /users/jmfu/tbb2018_20171205oss/bin/tbbvars.sh intel64 linux auto_tbbroot
+cd ~/Salmon-0.8.2_linux_x86_64/bin/
+out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
+./salmon index -t /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/sim.fa -i hg38_sim_salmon_ind --type quasi -k 31
+
+## RSEM ##################################################################################
+module load bowtie/1.1.1
+PATH=$PATH:/users/jmfu/RSEM-1.3.0
+cd /dcl01/leek/data/ta_poc/geuvadis/
+cd /dcl01/leek/data/ta_poc/GencodeV25
+rsem-prepare-reference --gtf gencodeV25.sim.gtf --bowtie hg38_sim.fasta rsem_sim_ind
+
+

@@ -14,38 +14,38 @@ annotation=/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3
 cd /dcl01/leek/data/ta_poc/geuvadis/
 while read f
 do
-	hisat2 --dta -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-stringtie/"$f".sam
-	samtools view -b hisat2-stringtie/"$f".sam > hisat2-stringtie/"$f".bam
-	samtools sort hisat2-stringtie/"$f".bam -o hisat2-stringtie/sorted/"$f".bam -O 'bam' -T "$f"
-	rm hisat2-stringtie/"$f".bam
-	rm hisat2-stringtie/"$f".sam
-	stringtie -o /dcl01/leek/data/ta_poc/geuvadis/hisat2-stringtie/stringtie/"$f".st -e -G $annotation hisat2-stringtie/sorted/"$f".bam
-	rm hisat2-stringtie/sorted/"$f".bam
+	if [ ! -e /dcl01/leek/data/ta_poc/geuvadis/hisat2-stringtie/stringtie/$f.st ]; then
+		hisat2 --dta -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-stringtie/"$f".sam
+		samtools view -b hisat2-stringtie/"$f".sam > hisat2-stringtie/"$f".bam
+		samtools sort hisat2-stringtie/"$f".bam -o hisat2-stringtie/sorted/"$f".bam -O 'bam' -T "stringtie_$f"
+		rm hisat2-stringtie/"$f".bam
+		rm hisat2-stringtie/"$f".sam
+		stringtie -o /dcl01/leek/data/ta_poc/geuvadis/hisat2-stringtie/stringtie/"$f".st -e -G $annotation hisat2-stringtie/sorted/"$f".bam
+		rm hisat2-stringtie/sorted/"$f".bam
+	fi
 done < samples.txt
 
 ##########################################################################################
 # HISAT2(2.0.5)-Cufflinks(2.2.1)
 ##########################################################################################
-## Index
-cd /dcl01/leek/data/ta_poc/GencodeV25/hisat2-cufflinks
-hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
-
 ## Align + Quant
 module load cufflinks/2.2.1
 annotation=/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3
 cd /dcl01/leek/data/ta_poc/geuvadis
 while read f
 do
-	hisat2 --dta-cufflinks -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-cufflinks/"$f".sam
-	samtools view -b hisat2-cufflinks/"$f".sam > hisat2-cufflinks/"$f".bam
-	samtools sort hisat2-cufflinks/"$f".bam -o hisat2-cufflinks/sorted/"$f".bam -O 'bam' -T "$f"
-	rm hisat2-cufflinks/"$f".bam
-	rm hisat2-cufflinks/"$f".sam
-	cufflinks -m 250 -s 25 --total-hits-norm --no-effective-length-correction --no-length-correction \
-	-o /dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/"$f" \
-	-G /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3 \
-	hisat2-cufflinks/sorted/"$f".bam
-	rm hisat2-cufflinks/sorted/"$f".bam
+if [ ! -e /dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/$f/transcripts.gtf ]; then
+hisat2 --dta-cufflinks -p 20 -f -x /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full -q -1 data/"$f"/"$f"_1.fastq.gz -2 data/"$f"/"$f"_2.fastq.gz -S hisat2-cufflinks/"$f".sam
+samtools view -b hisat2-cufflinks/"$f".sam > hisat2-cufflinks/"$f".bam
+samtools sort hisat2-cufflinks/"$f".bam -o hisat2-cufflinks/sorted/"$f".bam -O 'bam' -T "cufflinks_$f"
+rm hisat2-cufflinks/"$f".bam
+rm hisat2-cufflinks/"$f".sam
+cufflinks -m 250 -s 25 --total-hits-norm --no-effective-length-correction --no-length-correction \
+-o /dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/"$f" \
+-G /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3 \
+hisat2-cufflinks/sorted/"$f".bam
+rm hisat2-cufflinks/sorted/"$f".bam
+fi
 done < samples.txt
 
 ##########################################################################################
@@ -53,15 +53,11 @@ done < samples.txt
 ##########################################################################################
 module load bowtie/1.1.1
 PATH=$PATH:/users/jmfu/RSEM-1.3.0
-cd /dcl01/leek/data/ta_poc/geuvadis/
-
-## Index
-cd /dcl01/leek/data/ta_poc/GencodeV25
-rsem-prepare-reference --gtf gencodeV25.coding.gtf --bowtie hg38.fa /dcl01/leek/data/ta_poc/rsem-index/rsem
-
-## Quant
+cd /dcl01/leek/data/ta_poc/geuvadis
 while read f
 do
+if [ ! -e /dcl01/leek/data/ta_poc/geuvadis/rsem/$f.isoforms.results ]; then
+	echo $f
 	rsem-calculate-expression -p 20 --paired-end <(zcat data/"$f"/"$f"_1.fastq.gz) <(zcat data/"$f"/"$f"_2.fastq.gz) /dcl01/leek/data/ta_poc/rsem-index/rsem rsem/"$f"
 fi
 done < samples.txt
@@ -69,13 +65,6 @@ done < samples.txt
 ##########################################################################################
 # Kallisto (0.43.0)
 ##########################################################################################
-## Index
-PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
-index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
-base=/dcl01/leek/data/ta_poc/geuvadis/kallisto
-kallisto index -i $index /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa
-
-## Quant
 base=/dcl01/leek/data/ta_poc/geuvadis/kallisto
 fastq_base=/dcl01/leek/data/ta_poc/geuvadis/data
 index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
@@ -88,18 +77,13 @@ done < samples.txt
 ########################################################################
 ### Salmon (0.8.2)
 ########################################################################
-## Index
-cd ~/Salmon-0.8.2_linux_x86_64/bin/
-out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
-./salmon index -t /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa -i $out_dir --type quasi -k 31
-
-## Quant
+source /users/jmfu/tbb2017_20161128oss/bin/tbbvars.sh intel64 linux auto_tbbroot
 fastq_base=/dcl01/leek/data/ta_poc/geuvadis/data
 index=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
 cd ~/Salmon-0.8.2_linux_x86_64/bin/
 while read f
 do
-	./salmon quant -p 20 -i $index -l A -1 $fastq_base/$f/$f'_1.fastq.gz' -2 $fastq_base/$f/$f'_2.fastq.gz'  -o /dcl01/leek/data/ta_poc/geuvadis/salmon/'$f'
+	./salmon quant -p 10 -i $index -l A -1 $fastq_base/$f/$f'_1.fastq.gz' -2 $fastq_base/$f/$f'_2.fastq.gz'  -o /dcl01/leek/data/ta_poc/geuvadis/salmon/$f
 done < /dcl01/leek/data/ta_poc/geuvadis/samples.txt
 
 ##########################################################################################
@@ -107,7 +91,10 @@ done < /dcl01/leek/data/ta_poc/geuvadis/samples.txt
 ##########################################################################################
 library(recountNNLS)
 pheno = processPheno('ERP001942')
-rse_tx = recountNNLS(pheno)
+	pheno = pheno[pheno$run %in% c('ERR188021', 'ERR188412'),]
+	load("~/gene_mat_75.rda")
+	gene_mat = gene_mat_75
+rse_tx = recountNNLS(pheno, cores=10)
 
 ##########################################################################################
 # compile results
@@ -116,7 +103,9 @@ library(rtracklayer)
 library(recountNNLS); library(SummarizedExperiment)
 load(getRseTx('ERP001942'))
 
-sample = 'ERR188412'
+set.seed(463)
+sample = sample(colnames(rse_tx), 1)
+sample = sort(colnames(rse_tx))[1]
 tx_info = rowData(rse_tx)
 tx_list = rownames(rse_tx)
 rn = assays(rse_tx)$counts[,sample]
@@ -138,7 +127,7 @@ out = rn
 	cl_mat = match(tx_list, cl$transcript_id)
 	cl_cov=as.numeric(cl$cov[cl_mat])
 	cl_cts = cl_cov*tx_info$tx_len/75
-	out = cbind(out, cl)
+	out = cbind(out, cl_cts)
 
 	rsem_mat = match(tx_list, rsem$transcript_id)
 	out = cbind(out, rsem=rsem$expected_count[rsem_mat])
@@ -148,43 +137,53 @@ out = rn
 
 	salmon_mat = match(tx_list, salmon$Name)
 	out = cbind(out, sl = salmon$NumReads[salmon_mat])
+	out = data.frame(out)
+
+	c12=cor(out$out, out$kl, method="spearman", use="complete")
+	c13=cor(out$out, out$st, method="spearman", use="complete")
+	c14=cor(out$out, out$cl, method="spearman", use="complete")
+	c15=cor(out$out, out$rsem, method="spearman", use="complete")
+	c16=cor(out$out, out$sl, method="spearman", use="complete")
+		c23=cor(out$kl, out$st, method="spearman", use="complete")
+		c24=cor(out$kl, out$cl, method="spearman", use="complete")
+		c25=cor(out$kl, out$rsem, method="spearman", use="complete")
+		c26=cor(out$kl, out$sl, method="spearman", use="complete")
+			c34=cor(out$st, out$cl, method="spearman", use="complete")
+			c35=cor(out$st, out$rsem, method="spearman", use="complete")
+			c36=cor(out$st, out$sl, method="spearman", use="complete")
+				c45=cor(out$cl, out$rsem, method="spearman", use="complete")
+				c46=cor(out$cl, out$sl, method="spearman", use="complete")
+					c56=cor(out$rsem, out$sl, method="spearman", use="complete")
+
+	threshold=0
+	c21=sum((out$out>threshold)*(out$kl>threshold), na.rm=T)
+	c31=sum((out$out>threshold)*(out$st>threshold), na.rm=T)
+	c41=sum((out$out>threshold)*(out$cl>threshold), na.rm=T)
+	c51=sum((out$out>threshold)*(out$rsem>threshold), na.rm=T)
+	c61=sum((out$out>threshold)*(out$sl>threshold), na.rm=T)
+		c32=sum((out$kl>threshold)*(out$st>threshold), na.rm=T)
+		c42=sum((out$kl>threshold)*(out$cl>threshold), na.rm=T)
+		c52=sum((out$kl>threshold)*(out$rsem>threshold), na.rm=T)
+		c62=sum((out$kl>threshold)*(out$sl>threshold), na.rm=T)
+			c43=sum((out$st>threshold)*(out$cl>threshold), na.rm=T)
+			c53=sum((out$st>threshold)*(out$rsem>threshold), na.rm=T)
+			c63=sum((out$st>threshold)*(out$sl>threshold), na.rm=T)
+				c54=sum((out$cl>threshold)*(out$rsem>threshold), na.rm=T)
+				c64=sum((out$cl>threshold)*(out$sl>threshold), na.rm=T)
+					c65=sum((out$rsem>threshold)*(out$sl>threshold), na.rm=T)
 
 
-	cor(out$out, out$kl, method="spearman", use="complete")
-	cor(out$out, out$st, method="spearman", use="complete")
-	cor(out$out, out$cl, method="spearman", use="complete")
-	cor(out$out, out$rsem, method="spearman", use="complete")
-	cor(out$out, out$sl, method="spearman", use="complete")
-		cor(out$kl, out$st, method="spearman", use="complete")
-		cor(out$kl, out$cl, method="spearman", use="complete")
-		cor(out$kl, out$rsem, method="spearman", use="complete")
-		cor(out$kl, out$sl, method="spearman", use="complete")
-			cor(out$st, out$cl, method="spearman", use="complete")
-			cor(out$st, out$rsem, method="spearman", use="complete")
-			cor(out$st, out$sl, method="spearman", use="complete")
-				cor(out$cl, out$rsem, method="spearman", use="complete")
-				cor(out$cl, out$sl, method="spearman", use="complete")
-					cor(out$rsem, out$sl, method="spearman", use="complete")
-	
-	apply(out, 2, function(x) sum(x>0, na.rm=T))
-
-	sum((out$out>0)*(out$kl>0), na.rm=T)
-	sum((out$out>0)*(out$st>0), na.rm=T)
-	sum((out$out>0)*(out$cl>0), na.rm=T)
-	sum((out$out>0)*(out$rsem>0), na.rm=T)
-	sum((out$out>0)*(out$sl>0), na.rm=T)
-		sum((out$kl>0)*(out$st>0), na.rm=T)
-		sum((out$kl>0)*(out$cl>0), na.rm=T)
-		sum((out$kl>0)*(out$rsem>0), na.rm=T)
-		sum((out$kl>0)*(out$sl>0), na.rm=T)
-			sum((out$st>0)*(out$cl>0), na.rm=T)
-			sum((out$st>0)*(out$rsem>0), na.rm=T)
-			sum((out$st>0)*(out$sl>0), na.rm=T)
-				sum((out$cl>0)*(out$rsem>0), na.rm=T)
-				sum((out$cl>0)*(out$sl>0), na.rm=T)
-					sum((out$rsem>0)*(out$sl>0), na.rm=T)
-
-
-
-
+	mat_cor = matrix(c(0, c12, c13, c14, c15, c16,
+					0, 0, c23, c24, c25, c26,
+					0, 0, 0, c34, c35, c36,
+					0, 0, 0, 0, c45, c46,
+					0, 0, 0, 0, 0, c56,
+					0, 0, 0, 0, 0, 0), ncol=6, nrow=6, byrow=T)
+	mat_ct = matrix(c(0, 0, 0, 0, 0, 0,
+					c21, 0, 0, 0, 0, 0,
+					c31, c32, 0, 0, 0, 0,
+					c41, c42, c43, 0, 0, 0,
+					c51, c52, c53, c54, 0, 0,
+					c61, c62, c63, c64, c65, 0), ncol=6, nrow=6, byrow=T)
+	diag(mat_ct) = apply(out, 2, function(x) sum(x>0, na.rm=T))[c(1, 5, 2, 3, 4, 6)]
 

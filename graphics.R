@@ -173,7 +173,7 @@ for(id in ids){
 
       A = log(us_sub[,1]+1, 2) + log(real+1, 2)
       M = log(us_sub[,1]+1, 2) - log(real+1, 2)
-     
+
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("recountNNLS \nRMSE: ", rmse_us), xlab="MA Plot: Truth - LM",
       xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
@@ -213,13 +213,13 @@ for(id in ids){
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
       axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
-      axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2), 
+      axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2),
             labels=parse(text = c(1, 10, 100, '10^3', '10^4', '10^5', '10^6')))
 
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
       text(x=0.5, y=0.8, pos=1, "Gene Level", cex=2)
-      
+
       us_sub = cbind(by(us_sub[,1], tab$gene_id, sum))
       kallisto_sub = cbind(by(kallisto_sub[,1], tab$gene_id, sum))
       st_sub = cbind(by(st_sub[,1], tab$gene_id, sum))
@@ -263,7 +263,7 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("recountNNLS \nRMSE: ", rmse_us), xlab="MA Plot: Truth - LM",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
 
       A = log(kallisto_sub[,1]+1, 2) + log(real+1, 2)
@@ -271,7 +271,7 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), main = paste0("Kallisto \nRMSE: ", rmse_kallisto), xlab="MA Plot Truth - Kallisto",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
 
       A = log(st_sub[,1]+1, 2) + log(real+1, 2)
@@ -279,7 +279,7 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("HISAT2-StringTie \nRMSE: ", rmse_st), xlab="MA Plot Truth - Hisat-Stringtie",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
 
       A = log(cufflinks_sub[,1]+1, 2) + log(real+1, 2)
@@ -287,7 +287,7 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("HISAT2-Cufflinks \nRMSE: ", rmse_cufflinks), xlab="MA Plot Truth - RSEM",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
 
       A = log(rsem_sub[,1]+1, 2) + log(real+1, 2)
@@ -295,7 +295,7 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("RSEM \nRMSE: ", rmse_rsem), xlab="MA Plot Truth - RSEM",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
 
       A = log(salmon_sub[,1]+1, 2) + log(real+1, 2)
@@ -303,9 +303,9 @@ for(id in ids){
       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2,  col=rgb(0,0,0,0.1),main = paste0("Salmon \nRMSE: ", rmse_salmon), xlab="MA Plot Truth - RSEM",
            xaxt="n", yaxt="n", pch=19, cex=cs); abline(h=0, col=2)
       abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
-      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2), 
+      axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')) , las=2)
-      axis(side=1, at = log(c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000), 2), 
+      axis(side=1, at = log(c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000), 2),
             labels=parse(text = c(10, 100, '10^3', '10^4', '10^5', '10^6', '10^7', '10^8', '10^9')))
 
       par(xpd=NA)
