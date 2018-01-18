@@ -12,6 +12,7 @@ gff_all = import.gff("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.gff3")
 gff_coding = gff_all[which(gff_all$gene_type=="protein_coding")]
 export(gff_coding, con="/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3")
 
+###### Calculating features for recountNNLS
 ### Disjoin exons
 gff_coding = import.gff("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3")
 gff_exons = gff_coding[gff_coding$type=="exon"]
@@ -36,7 +37,7 @@ for(rl in rls){
 	subset_ul = unlist(subset_grl)
 	total = c(gff_nodivide, subset_ul)
 	total_clean = sortSeqlevels(total)
-	total_clean = sort(total_clean, ignore.strand=T)
+	total_clean = sort(total_clean, ignore.strand=TRUE)
 	export.bed(total_clean, con=paste0("/dcl01/leek/data/ta_poc/GencodeV25/bins_", rl, ".bed"), format="bed")
 }
 
