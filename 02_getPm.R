@@ -1,16 +1,11 @@
+##### Contains the code create probability matrices
+
 rm(list=ls())
 library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrings); library(Rsamtools); 
 library(Biostrings); library(exomeCopy); library(GenomicFeatures); library(BSgenome.Hsapiens.UCSC.hg38)
 
-### Get all the transcript sequences
-# hg38 = BSgenome.Hsapiens.UCSC.hg38
-# TxDb = makeTxDbFromGFF("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gff3")
-# 	TxL = transcriptLengths(TxDb)
-# 	TxSeq = extractTranscriptSeqs(hg38, TxDb)
-# 	names(TxSeq) = TxL$tx_name
-#	save.image("~/get_pm.rda")
-load("~/get_pm.rda")
-
+########################################################################
+### functions for matrix creation
 getSequence = function(transcript_id, TxSeq){
 	return(TxSeq[names(TxSeq)==transcript_id])
 }
@@ -24,20 +19,16 @@ writeReads = function(sequence, readLen, directory){
 	return(fileOut)
 }
 alignReads = function(filename, aligner="hisat2", directory, gene, ref){
-	if(aligner=="hisat2"){
-		## hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites \
-		## /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
-		indexPath = "/dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full"
-		pathIn = paste0(directory, gene,"/", filename)
-		pathOutSam = paste0(pathIn, ".sam")
-		pathOutBam = paste0(pathOutSam, ".bam")
-		pathOutSplit = paste0(pathOutBam, ".split")
-		system2("hisat2", paste0("-x ", indexPath, " -f -U ", pathIn," -S ", pathOutSam))
-		system2("samtools", paste0("sort ", pathOutSam, " ", pathOutSam))
-		system2("samtools", paste0("index ", pathOutBam))
-		system2("regtools", paste("junctions extract -i 10 -o", pathOutSplit, pathOutBam))
-		return(pathOutBam)	
-	}
+	indexPath = "hisat2-index-hg38/hisat2-ind"
+	pathIn = paste0(directory, gene,"/", filename)
+	pathOutSam = paste0(pathIn, ".sam")
+	pathOutBam = paste0(pathOutSam, ".bam")
+	pathOutSplit = paste0(pathOutBam, ".split")
+	system2("hisat2", paste0("-x ", indexPath, " -f -U ", pathIn," -S ", pathOutSam))
+	system2("samtools", paste0("sort ", pathOutSam, " ", pathOutSam))
+	system2("samtools", paste0("index ", pathOutBam))
+	system2("regtools", paste("junctions extract -i 10 -o", pathOutSplit, pathOutBam))
+	return(pathOutBam)	
 }
 getBamGrJunctions = function(bamPath){
 	splitPath = paste0(bamPath, ".split")
@@ -119,28 +110,30 @@ writeF = function(gene_id, directory, readLens, gff_ex, gff_jx){
 	}
 	return(0)
 }
+########################################################################
 
-load("/dcl01/leek/data/ta_poc/GencodeV25/gff_jx.rda")
-
+### Get all the transcript sequences
+hg38 = BSgenome.Hsapiens.UCSC.hg38
+TxDb = makeTxDbFromGFF("GencodeV25/gencodeV25.coding.gff3")
+	TxL = transcriptLengths(TxDb)
+	TxSeq = extractTranscriptSeqs(hg38, TxDb)
+	names(TxSeq) = TxL$tx_name
+load("GencodeV25/gff_jx.rda")
 genes = unique(TxL$gene_id)
-
 rls = c(37, 50, 75, 100, 150)
 
 for(readLens in rls){
-	readLens=37
-	directory = paste0("/dcl01/leek/data/ta_poc/GencodeV25/pileup_", readLens, "/")
-	gff_ex = import.bed(paste0("/dcl01/leek/data/ta_poc/GencodeV25/bins_", readLens, ".bed"))
+	directory = paste0("GencodeV25/pileup_", readLens, "/")
+	gff_ex = import.bed(paste0("GencodeV25/bins_", readLens, ".bed"))
 	diagnostic = mclapply(genes, writeF, directory, readLens, gff_ex, gff_jx, mc.cores=10)	
 }
 
-
-directory = "/dcl01/leek/data/ta_poc/GencodeV25/pileup_50/"
-	gff_ex = import.bed(paste0("/dcl01/leek/data/ta_poc/GencodeV25/bins_", readLens, ".bed")
+directory = "GencodeV25/pileup_50/"
+	gff_ex = import.bed(paste0("GencodeV25/bins_", readLens, ".bed")
 	diagnostic = mclapply(genes, writeF, directory, readLens, gff_ex, gff_jx, mc.cores=20)	
 
-
 ##########################################################################################
-### rda
+### create rda
 ##########################################################################################
 library(stringr); library(parallel)
 getEmissionHelper = function(file, rl){
@@ -154,14 +147,14 @@ getEmissionHelper = function(file, rl){
 	return(emission_matrix)
 }
 
-rl = 50
-setwd(paste0("/dcl01/leek/data/ta_poc/GencodeV25/pileup_", rl, "/Fs"))
+rl = 75
+setwd(paste0("GencodeV25/pileup_", rl, "/Fs"))
 files = list.files()
 matrix_list = mclapply(files, getEmissionHelper, rl, mc.cores=10)
 names(matrix_list) = str_replace(files, ".tab", "")
-matrix_50 = matrix_list
-save(matrix_50, file='/dcl01/leek/data/ta_poc/GencodeV25/matrix_50.rda')
+matrix_75 = matrix_list
 
+### Rescale the exonic feature probabilities to be on read scale
 for(i in 1:length(files)){
 	print(i); flush.console()
 	f = files[i]
@@ -174,4 +167,4 @@ for(i in 1:length(files)){
 	}
 }
 names(matrix_list) = stringr::str_replace(files, ".tab", "")
-save(matrix_list, file='/dcl01/leek/data/ta_poc/GencodeV25/matrix_150.rda')
+save(matrix_list, file='GencodeV25/matrix_175.rda')

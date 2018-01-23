@@ -1,56 +1,44 @@
+##### Contains the code to build all indices use in the analysis
+
+cd
 ##########################################################################################
 ##### Full hg38 genome
 ##########################################################################################
-
-cd /dcl01/leek/data/ta_poc/GencodeV25
-hisat2-build -f /dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-index-genome-hg38/hisat2-ind
+mkdir GencodeV25
+cd GencodeV25
+hisat2-build -f hg38.fa hisat2-index-hg38/hisat2-ind
 
 ##########################################################################################
-##### Coding genes [GencodeV25 Full]
+##### Coding genes of GencodeV25 annotation
 ##########################################################################################
 
 ## HISAT2 ################################################################################
-cd /dcl01/leek/data/ta_poc/GencodeV25
+cd GencodeV25
 python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
 python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
 hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites \
-	/dcl01/leek/data/ta_poc/GencodeV25/hg38.fa /dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-full
+	GencodeV25/hg38.fa hisat2-full-index/hisat2-ind-full
 
 ## Kallisto ##############################################################################
 PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
-index=/dcl01/leek/data/ta_poc/geuvadis/kallisto/kallisto_index
-kallisto index -i $index /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa
+index=kallisto/kallisto_index
+kallisto index -i $index GencodeV25/gencodeV25.coding.fa
 
 ## Salmon ################################################################################
 source /users/jmfu/tbb2018_20171205oss/bin/tbbvars.sh intel64 linux auto_tbbroot
 cd ~/Salmon-0.8.2_linux_x86_64/bin/
-out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index 
-./salmon index -t /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.coding.fa -i $out_dir --type quasi -k 31
+out_dir=GencodeV25/salmon_index 
+./salmon index -t GencodeV25/gencodeV25.coding.fa -i $out_dir --type quasi -k 31
 
 ## RSEM ##################################################################################
 module load bowtie/1.1.1
 PATH=$PATH:/users/jmfu/RSEM-1.3.0
-cd /dcl01/leek/data/ta_poc/GencodeV25
-rsem-prepare-reference --gtf gencodeV25.coding.gtf --bowtie hg38.fa /dcl01/leek/data/ta_poc/rsem-index/rsem
+cd GencodeV25
+rsem-prepare-reference --gtf gencodeV25.coding.gtf --bowtie hg38.fa rsem-index/rsem
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-DEFUNCT 
+## sailfish ##############################################################################
+PATH=$PATH:/users/jmfu/SailfishBeta-0.7.6_Linux-x86-64/bin
+sailfish index -t GencodeV25/gencodeV25.coding.fa  -o  sailfish-index -k 31 -p 1
 
 ##########################################################################################
 ##### Coding genes [GencodeV25, chr1+chr14, simulations]
@@ -77,8 +65,5 @@ out_dir=/dcl01/leek/data/ta_poc/geuvadis/GencodeV25/salmon_index
 ## RSEM ##################################################################################
 module load bowtie/1.1.1
 PATH=$PATH:/users/jmfu/RSEM-1.3.0
-cd /dcl01/leek/data/ta_poc/geuvadis/
-cd /dcl01/leek/data/ta_poc/GencodeV25
 rsem-prepare-reference --gtf gencodeV25.sim.gtf --bowtie hg38_sim.fasta rsem_sim_ind
-
 
