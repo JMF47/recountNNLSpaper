@@ -170,11 +170,7 @@ setwd(outdir)
 ### Compile the true counts
 load("reads/sim_counts_matrix.rda")
 rownames(counts_matrix) = stringr::str_replace(stringr::str_extract(rownames(counts_matrix), "ENST.*gene"), " gene", "")
-TxDb = makeTxDbFromGFF("~/gencodeV25.sim.gtf")
-    truth = transcriptLengths(TxDb)
-    truth$reads = 0
-    mat = match(truth$tx_name, rownames(counts_matrix))
-    truth$reads[!is.na(mat)] = counts_matrix[mat[!is.na(mat)],1]
+truth = read.table("sim_info_full.txt", header=TRUE)
 
 recountNNLS = assays(rse_tx)$counts
 	recountNNLS = recountNNLS[match(truth$transcript_id, rownames(recountNNLS)),]
@@ -211,3 +207,4 @@ cl = as.numeric(as.character(cufflinks_cov[,2]))*truth$tx_len/rl/paired
 
 info = data.frame(recountNNLS=recountNNLS, kl=kl, st=st, cl=cl, rsem=rsem, sl=sl)
 
+save(info, truth, file="quantified.rda")

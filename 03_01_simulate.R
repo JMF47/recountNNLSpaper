@@ -36,6 +36,7 @@ sim_info = merge(sim_info, tx_perGene, by="gene_id", sort=F)
 ### It is a product of the gene reads and distribution amongst isoforms
 ### This is passed on to polyester
 sim_info$reads = round(sim_info$geneReads*sim_info$abundance)
+write.table(sim_info, row.names=F, file="sim_info_full.txt")
 
 ##########################################################################################
 ### Simulate the reads using polyester
