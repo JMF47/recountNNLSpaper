@@ -8,8 +8,8 @@
 cd GencodeV25
 gffread -w hg38_coding.fa -g hg38.fa gencodeV25.coding.gtf
 module load cufflinks/2.2.1 
-python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
-python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
+python $hisat2_path/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
+python $hisat2_path/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
 hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites GencodeV25/hg38.fa hisat2-full-index/hisat2-ind-full
 
 ## Align + Quant

@@ -1,5 +1,4 @@
 ##### Contains the code to build all indices use in the analysis
-
 cd
 ##########################################################################################
 ##### Full hg38 genome
