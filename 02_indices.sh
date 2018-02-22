@@ -44,17 +44,6 @@ sailfish index -t GencodeV25/gencodeV25.coding.fa  -o  sailfish-index -k 31 -p 1
 ##### Coding genes [GencodeV25, chr1+chr14, simulations]
 ##########################################################################################
 
-## HISAT2 ################################################################################
-samtools faidx hg38_sim.fasta
-cd GencodeV25
-# gffread -w sim.fa -g hg38_sim.fasta gencodeV25.sim.gtf
-python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.sim.gtf > gencodeV25.sim.exons
-python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.sim.gtf > gencodeV25.sim.splice.sites
-hisat2-build --exon /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.exons \
-	--ss /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.splice.sites \
-	/dcl01/leek/data/ta_poc/GencodeV25/hg38.fa \
-	/dcl01/leek/data/ta_poc/hisat2-indices/hisat2-sim
-
 ## Kallisto ##############################################################################
 PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
 kallisto index -i hg38_sim_kallisto_ind /dcl01/leek/data/ta_poc/geuvadis/GencodeV25/gencodeV25.sim.fa
