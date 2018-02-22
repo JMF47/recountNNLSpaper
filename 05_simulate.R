@@ -1,5 +1,6 @@
 ##### Contains the code to simulate the simulation data (chr1 + chr 14)
 ##### Currently set to 75bp, single end simulation
+##### Change values of rl and pe to simulate the other conditions in the study
 
 ##########################################################################################
 ### Calculate the simulation truth
@@ -237,4 +238,4 @@ cl = as.numeric(as.character(cufflinks_cov[,2]))*truth$tx_len/rl/paired
 
 ### cbind all counts
 info = data.frame(recountNNLS=recountNNLS, kl=kl, cl=cl, rsem=rsem, sl=sl)
-save(info, recountNNLSse, recountNNLSscore, file=paste0("~/", rl, "_", paired, "_info.rda"))
+save(info, recountNNLSse, recountNNLSscore, truth, file=paste0("~/", rl, "_", paired, "_info.rda"))

@@ -107,45 +107,37 @@ dev.off()
 #################################################################################
 rm(list=ls())
 rls = c(37, 50, 75, 100, 150)
-power = 1
 rmse_complete = NULL
 mae_complete = NULL
 for(paired in 1:2){
 	for(rl in rls){
-		load(paste0("~/downloads/preprint_new/", rl, "_", paired, "/results.rda"))
-		load(paste0('/users/jackfu/downloads/sim_robust_se/', rl, '_', paired, '_', power, '_HC4.rda'))
-		ind = match(truth$tx_name, rownames(rse_tx))
-		rse_sub = rse_tx[ind,]
-		output = cbind(assays(rse_sub)$counts/paired, assays(rse_sub)$se/paired, assays(rse_sub)$scores)
-		info[,1] = output[,1]
-		ses = output[,2]
-		scores = output[,3]
-		mean(log(output[,2]+1, 10)>3, na.rm=T)
+		load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
+		ses = recountNNLSse
+		scores = recountNNLSscore
 
 		err = info-truth$reads
-		rmse_complete = rbind(rmse_complete, sqrt(apply(err^2, 2, mean, na.rm=T)))
 		mae_complete = rbind(mae_complete, apply(abs(err), 2, mean, na.rm=T))
 
-		png(paste0("~/downloads/02-15/", rl, "_", paired, "uniq.png"), width=600, height=600)
+		png(paste0("~/downloads/preprint_update/graphics/", rl, "_", paired, ".png"), width=600, height=600)
 
 		lkps = scores
 		cols = c("black", "red", "orange", "purple", "green")
 		par(mfrow=c(2,2))
 		par(mar=c(4.5, 4, 4, 2))
-		hist(lkps[output[,1]>0], breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
+		hist(lkps[info[,1]>0], breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
 			main="Distribution of Uniqueness Scores", col=0)
 		u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
 		text(x=u[1]+(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
-		hist(lkps[output[,1]>0], breaks=seq(0, 1, by=0.1), add=T, col=0)
+		hist(lkps[info[,1]>0], breaks=seq(0, 1, by=0.1), add=T, col=0)
 
 		### calculate errors and CI coverage as a function of uniquness
-		cis = data.frame(cil=output[,1]-1.96*output[,2], ciu=output[,1]+1.96*output[,2])
-		cis$truth = truth$reads; cis$bs = output[,1]; cis$scores = scores
+		cis = data.frame(cil=info[,1]-1.96*ses, ciu=info[,1]+1.96*ses)
+		cis$truth = truth$reads; cis$bs = info[,1]; cis$scores = scores
 		cis = cis[cis$bs>0,]
 		score_cat = cut(cis$scores, seq(0, 1, by=0.1))
 		med_se = by((cis$ciu-cis$cil)/1.96, score_cat, median)
 		err_sub = err[match(rownames(cis), rownames(err)),]
-		abs_errs = apply(err_sub, 2, function(x) by(abs(x), score_cat, mean))
+		abs_errs = apply(err_sub, 2, function(x) by(abs(x), score_cat, mean, na.rm=T))
 		hit = (cis$cil<=cis$truth & cis$ciu>=cis$truth)
 		means = by(hit, score_cat, mean)
 
@@ -157,7 +149,6 @@ for(paired in 1:2){
 		axis(side=1, at = 1:length(means), labels = names(means), las=2)
 		text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
 		text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
-
 
 		med_se = log(med_se+1, 10)
 		plot(med_se, xaxt="n", ylab="log10 Median SE", xlab="", main="Median SE", pch=19, ylim=c(1, max(med_se)))
@@ -180,7 +171,7 @@ for(paired in 1:2){
 }
 
 ### 
-png("~/downloads/02-15/performance_rl.png", height=400, width=800)
+png("~/downloads/preprint_update/graphics/performance_rl.png", height=400, width=800)
 layout(matrix(c(1, 1, 2, 3, 4, 4), nrow=3, byrow=T), heights = c(0.5, 5, 0.5))
 par(ps = 12, cex = 1.2, cex.main = 1.2)
 par(mar=rep(0,4))
@@ -209,58 +200,32 @@ plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", x
 dev.off()
 
 #################################################################################
-### Performance in RSEM-based data
+### Performance in fully synthetic data
 #################################################################################
-rm(list=ls())
-load(paste0("~/downloads/sim_robust_se/truth.rda"))
-load(paste0('~/downloads/sim_robust_se/rsem_sim_75_2_1_HC4.rda'))
-ind = match(rownames(count_mat), rownames(rse_tx))
-rse_sub = rse_tx[ind,]
-output = cbind(assays(rse_sub)$counts/2, assays(rse_sub)$se/2, assays(rse_sub)$scores)
-tx_info = rowData(rse_sub)
-
-cl = rtracklayer::import('/users/jackfu/downloads/sim_robust_se/transcripts.gtf')
-kallisto = read.table('/users/jackfu/downloads/sim_robust_se/abundance.tsv', header=T)
-salmon = read.table('/users/jackfu/downloads/sim_robust_se/quant.sf', header=T)
-
-tx_list = rownames(rse_sub)
-out = output[,1]
-kallisto_mat = match(tx_list, kallisto$target_id)
-	out = cbind(out, kl = kallisto$est_counts[kallisto_mat])
-cl = cl[cl$type=="transcript"]
-	cl_mat = match(tx_list, cl$transcript_id)
-	cl_cov=as.numeric(cl$cov[cl_mat])
-	cl_cts = cl_cov*tx_info$tx_len/75/2
-	out = cbind(out, cl_cts)
-tx_list = stringr::str_replace(tx_list, "_PAR_Y", "")
-salmon_mat = match(tx_list, salmon$Name)
-	out = cbind(out, sl = salmon$NumReads[salmon_mat])
-	out = data.frame(out)
-
+load("~/downloads/preprint_update/rsem_based.rda")
 err = out-count_mat
-sqrt(apply(err^2, 2, mean, na.rm=T))
 apply(abs(err), 2, mean, na.rm=T)
 
-png("~/downloads/02-15/rsem_based.png", height=600, width=600)
-lkps = output[,3]
+png("~/downloads/preprint_update/graphics/rsem_based.png", height=600, width=600)
+lkps = score
 cols = c("black", "red", "orange", "green")
 par(mfrow=c(2,2))
 par(mar=c(4.5, 4, 4, 2))
-hist(lkps[output[,1]>0], breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
+hist(lkps[out[,1]>0], breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
 	main="Distribution of Uniqueness Scores", col=0)
 u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-hist(lkps[output[,1]>0], breaks=seq(0, 1, by=0.1), add=T, col=0)
+hist(lkps[out[,1]>0], breaks=seq(0, 1, by=0.1), add=T, col=0)
 text(x=u[1]+(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
 
 ### calculate errors and CI coverage as a function of uniquness
-cis = data.frame(cil=output[,1]-1.96*output[,2], ciu=output[,1]+1.96*output[,2])
-cis$truth = count_mat; cis$bs = output[,1]; cis$scores = output[,3]
+cis = data.frame(cil=out[,1]-1.96*se, ciu=out[,1]+1.96*se)
+cis$truth = count_mat; cis$bs = out[,1]; cis$score = score; cis$se = se
 cis = cis[cis$bs>0,]
-score_cat = cut(cis$scores, seq(0, 1, by=0.1))
-med_se = by((cis$ciu-cis$cil)/1.96, score_cat, median)
+score_cat = cut(cis$score, seq(0, 1, by=0.1))
+med_se = by(as.numeric(cis$se), score_cat, median)
 err_sub = err[match(rownames(cis), rownames(err)),]
 abs_errs = apply(err_sub, 2, function(x) by(abs(x), score_cat, mean, na.rm=T))
-hit = (cis$cil<=cis$truth & cis$ciu>=cis$truth)
+hit = (cis[,1]<=cis$truth & cis[,2]>=cis$truth)
 means = by(as.numeric(hit), score_cat, mean, na.rm=T)
 
 plot(abs_errs[,1], ylab="Mean Absolute Error", xlab="", xaxt="n", ylim=c(0, max(abs_errs, na.rm=T)),
@@ -293,7 +258,7 @@ dev.off()
 ### ERR188410
 #################################################################################
 rm(list=ls())
-load("~/downloads/sim_robust_se/geuvadis_sub.rda")
+load("~/downloads/preprint_update/ERR188410.rda")
 tx_info = rowData(rse_tx)
 gff = rtracklayer::import("~/downloads/gencodeV25.coding.dj.gff3")
 
@@ -348,7 +313,7 @@ counts = assays(rse_tx)$counts[,2]
 se = assays(rse_tx)$se[,2]
 score = assays(rse_tx)$score[,2]
 
-png("~/downloads/sim_robust_se/se.png", width=1000, height=450, pointsize = 20)
+png("~/downloads/preprint_update/graphics/se.png", width=1000, height=450, pointsize = 20)
 layout(matrix(c(1, 1, 2, 3, 4, 4, 5, 6), ncol=2, byrow=T), heights = c(0.5, 2, 0.5, 2), widths=c(4, 1))
 par(mar=rep(0, 4))
 plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")

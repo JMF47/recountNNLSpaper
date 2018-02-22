@@ -4,12 +4,8 @@ library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrin
 
 ### The exonic bins from our method for a read length
 gff_ex = import('/dcl01/leek/data/ta_poc/GencodeV25/bins_150.bed')
-# data(bins_75)
-# 	gff_ex = bins_75
 ### The probability matrices created previously for the same read length
 load('/dcl01/leek/data/ta_poc/GencodeV25/matrix_150.rda')
-# data(matrix_75)
-# 	mat = matrix_75
 
 ### Calculation starts here
 list_ex = rep( list(NULL), length(gff_ex))

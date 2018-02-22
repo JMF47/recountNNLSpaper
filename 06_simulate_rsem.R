@@ -74,10 +74,8 @@ bw = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rail/ra
 jx_file = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rail/rail-rna_out/cross_sample_results/junctions.tsv.gz')
 table = data.frame(project=rl, run=samps, bigwig_path=bw, rls=rl, paired_end=(paired==2))
 pheno = processPheno(table)
-power=1
-counts = getCounts(pheno, jx_file)
-rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=20, power=power)
-save(rse_tx, file=paste0("~/rsem_sim_75_2_1_HC4.rda"))
+rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=20)
+save(rse_tx, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rse_tx.rda")
 
 ##########################################################################################
 ### HISAT2-cufflinks (2.0.5-2.2.1)
@@ -134,7 +132,38 @@ index="/dcl01/leek/data/ta_poc/GencodeV25/hg38_coding_salmon_ind "
 s = "sample_01"
 
 system2("/users/jmfu/Salmon-0.8.2_linux_x86_64/bin/salmon", paste0("quant -i ", index, " -l A -1 ", outdir, "/reads/", s, "_1.fasta -2 ", outdir, "/reads/", s, "_2.fasta -o ", salmon_dir, "/", s))	
-	
 
+#################################################################################
+### Compile information
+#################################################################################
+rm(list=ls())
+setwd('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2')
+load('truth.rda')
+load("rse_tx.rda")
+ind = match(rownames(count_mat), rownames(rse_tx))
+rse_sub = rse_tx[ind,]
+output = cbind(assays(rse_sub)$counts/2, assays(rse_sub)$se/2, assays(rse_sub)$scores)
+tx_info = rowData(rse_sub)
+se = assays(rse_sub)$se/2
+score = assays(rse_sub)$score
 
+cl = rtracklayer::import('hisat2/cufflinks/sample_01/transcripts.gtf')
+kallisto = read.table('kallisto/abundance.tsv', header=T)
+salmon = read.table('salmon/sample_01/quant.sf', header=T)
+
+tx_list = rownames(rse_sub)
+out = output[,1]
+kallisto_mat = match(tx_list, kallisto$target_id)
+	out = cbind(out, kl = kallisto$est_counts[kallisto_mat])
+cl = cl[cl$type=="transcript"]
+	cl_mat = match(tx_list, cl$transcript_id)
+	cl_cov=as.numeric(cl$cov[cl_mat])
+	cl_cts = cl_cov*tx_info$tx_len/75/2
+	out = cbind(out, cl_cts)
+tx_list = stringr::str_replace(tx_list, "_PAR_Y", "")
+salmon_mat = match(tx_list, salmon$Name)
+	out = cbind(out, sl = salmon$NumReads[salmon_mat])
+	out = data.frame(out)
+save(out, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/out.rda")
+save(out, count_mat, se, score, file="~/rsem_based.rda")
 

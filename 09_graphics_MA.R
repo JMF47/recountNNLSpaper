@@ -1,34 +1,22 @@
 ####################################################
 ### MA Plots
 ####################################################
-setwd("~/downloads/preprint_new/")
 cs = 0.15
 ids = c("37_1", "37_2", "50_1", "50_2", "75_1", "75_2", "100_1", "100_2", "150_1", "150_2")
-subset = FALSE
 
 for(id in ids){
-      sim_info = str_split_fixed(id, "_", n=2)
-      rl = as.numeric(sim_info[1])
-      paired = sim_info[2]==2
-      load(paste0(id, "/results.rda"))
-      real = truth$reads
+      scenario = str_split_fixed(id, "_", n=2)
+      rl = scenario[1]
+      paired = scenario[2]
+      load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
+      ses = recountNNLSse
+      scores = recountNNLSscore
 
-      info[is.na(info)] = 0
-      ### RMSE
       err = info-truth$reads
-      metric = apply(err, 2, function(x) sqrt(mean(x^2)))
-      metric1 = signif(metric, 3)
-      mlab1 = "RMSE"
-      ### MRD
-      rd = abs(info-truth$reads)/(info+truth$reads)*2
-            rd[is.na(rd)] = 0
-      metric2 = apply(rd*truth$reads, 2, sum)/sum(truth$reads)
-      metric2 = signif(metric2, 3)
-      mlab2="MRD"
+      mlab = "MAE"
+      metric = round(apply(abs(err), 2, mean, na.rm=T), 3)
       
-      png(paste0('/users/jackfu/downloads/plots_revision/', id, "_paper.png"), width=600, height=800, units = "px", pointsize=18)
-      # layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:22), nrow=7, byrow=F), 
-      #       heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1.5, 4, 4, 1.5))
+      png(paste0('~/downloads/preprint_update/graphics/', id, "_MA.png"), width=400, height=800, units = "px", pointsize=18)
       layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
             heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
 
@@ -45,8 +33,8 @@ for(id in ids){
 
       ### First set of MA plots
       for(i in 1:5){
-            A = log(info[,i]+1, 2) + log(real+1, 2)
-            M = log(info[,i]+1, 2) - log(real+1, 2)
+            A = log(info[,i]+1, 2) + log(truth$reads+1, 2)
+            M = log(info[,i]+1, 2) - log(truth$reads+1, 2)
 
             plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
                   main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
@@ -56,8 +44,7 @@ for(id in ids){
                   labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
             window = par()$usr
             ywid = window[4]-window[3]
-            text((window[1]+window[2])/2,  window[4]-ywid/10, labels=paste0(mlab2, ": ", metric2[i]), cex=1.5)
-            text((window[1]+window[2])/2,  window[3]+ywid/10, labels=paste0(mlab1, ": ", metric1[i]), cex=1.5)
+            text((window[1]+window[2])/2,  window[3]+ywid/10, labels=paste0(mlab, ": ", metric[i]), cex=1.5)
       }
       axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2),
             labels=parse(text = c(1, 10, 100, '10^3', '10^4', '10^5', '10^6')))
