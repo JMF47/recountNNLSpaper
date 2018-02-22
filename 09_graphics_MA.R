@@ -1,0 +1,155 @@
+####################################################
+### MA Plots
+####################################################
+setwd("~/downloads/preprint_new/")
+cs = 0.15
+ids = c("37_1", "37_2", "50_1", "50_2", "75_1", "75_2", "100_1", "100_2", "150_1", "150_2")
+subset = FALSE
+
+for(id in ids){
+      sim_info = str_split_fixed(id, "_", n=2)
+      rl = as.numeric(sim_info[1])
+      paired = sim_info[2]==2
+      load(paste0(id, "/results.rda"))
+      real = truth$reads
+
+      info[is.na(info)] = 0
+      ### RMSE
+      err = info-truth$reads
+      metric = apply(err, 2, function(x) sqrt(mean(x^2)))
+      metric1 = signif(metric, 3)
+      mlab1 = "RMSE"
+      ### MRD
+      rd = abs(info-truth$reads)/(info+truth$reads)*2
+            rd[is.na(rd)] = 0
+      metric2 = apply(rd*truth$reads, 2, sum)/sum(truth$reads)
+      metric2 = signif(metric2, 3)
+      mlab2="MRD"
+      
+      png(paste0('/users/jackfu/downloads/plots_revision/', id, "_paper.png"), width=600, height=800, units = "px", pointsize=18)
+      # layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:22), nrow=7, byrow=F), 
+      #       heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1.5, 4, 4, 1.5))
+      layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
+            heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
+
+      ### texts
+      par(mar=rep(0,4))
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      end = "Single End"
+      if(paired==T){end="Paired End"}
+      text(x=0.4, y=0.5, srt=90, paste0(rl, "bp ", end, " Simulation Results"), cex=2, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.5, y=0.8, pos=1, "Tx Level", cex=2)
+
+      bord = 12
+
+      ### First set of MA plots
+      for(i in 1:5){
+            A = log(info[,i]+1, 2) + log(real+1, 2)
+            M = log(info[,i]+1, 2) - log(real+1, 2)
+
+            plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
+                  main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
+            # abline(h=0, col=2)
+            # abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
+            axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), 
+                  labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
+            window = par()$usr
+            ywid = window[4]-window[3]
+            text((window[1]+window[2])/2,  window[4]-ywid/10, labels=paste0(mlab2, ": ", metric2[i]), cex=1.5)
+            text((window[1]+window[2])/2,  window[3]+ywid/10, labels=paste0(mlab1, ": ", metric1[i]), cex=1.5)
+      }
+      axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2),
+            labels=parse(text = c(1, 10, 100, '10^3', '10^4', '10^5', '10^6')))
+
+      # plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      # plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      # text(x=0.5, y=0.8, pos=1, "Gene Level", cex=2)
+      ### Convert to gene-level
+      # info_gene = NULL
+      # for(i in 1:5){
+      #       info_gene = cbind(info_gene, by(info[,i], truth$gene_id, sum))
+      # }
+      # info = info_gene
+      # info[is.na(info)] = 0
+      # real = as.numeric(by(truth$reads, truth$gene_id, sum))
+      # ### RMSE
+      # err = info-real
+      # metric = apply(err, 2, function(x) sqrt(mean(x^2)))
+      # metric1 = signif(metric, 3)
+      # mlab1 = "RMSE"
+      # ### MRD
+      # rd = abs(info-real)/(info+real)*2
+      #       rd[is.na(rd)] = 0
+      # metric2 = apply(rd*real, 2, sum)/sum(real)
+      # metric2 = signif(metric2, 3)
+      # mlab2="MRD"
+
+      # ### Second set of MA plots
+      # bord = 12
+
+      # for(i in 1:5){
+      #       A = log(info[,i]+1, 2) + log(real+1, 2)
+      #       M = log(info[,1]+1, 2) - log(real+1, 2)
+      #       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
+      #             main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
+      #       axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
+      #             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')), las=2)
+      #       window = par()$usr
+      #       ywid = window[4]-window[3]
+      #       text((window[1]+window[2])/2,  window[4]-ywid/10, labels=paste0(mlab2, ": ", metric2[i]), cex=1.5)
+      #       text((window[1]+window[2])/2,  window[3]+ywid/10, labels=paste0(mlab1, ": ", metric1[i]), cex=1.5)
+      # }
+      # axis(side=1, at = log(c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000), 2),
+      #       labels=parse(text = c(10, 100, '10^3', '10^4', '10^5', '10^6', '10^7', '10^8', '10^9')))
+
+      par(xpd=NA)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "recountNNLS", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "Kallisto", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "H2-Cufflinks", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "RSEM", cex=1.4, pos=3)
+      plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+      text(x=0.6, y=0.5, srt=270, "Salmon", cex=1.4, pos=3)
+
+      par(xpd=F)
+      dev.off()
+}
+
+####################################################
+### Distribution of read lengths
+####################################################
+url_table <- recount::recount_url
+projects = unique(url_table$project)
+rl_info = NULL
+for(project in projects){
+      message(which(projects==project))
+      phenoFile <- recount::download_study(project = project, type = 'phenotype',download = FALSE)
+      pheno <- .read_pheno(phenoFile, project)
+      info = pheno[,c("project", "run", "avg_read_length", "paired_end")]
+      rl_info = rbind(rl_info, info)
+}
+rl_info = rl_info[-which(rl_info$project=="TCGA"),]
+rl_info2 = rl_info; rl_info2$avg_read_length = rl_info$avg_read_length/((rl_info$paired_end==TRUE)+1)
+data(tcga_meta)  
+info =  tcga_meta[,c("project", "run", "rls", "paired_end")]   
+colnames(info) = colnames(rl_info)
+full_info = rbind(rl_info2, info)
+save(full_info, file="~/rl_info.rda")
+
+### Local
+load("~/downloads/rl_info.rda")
+rls_avail = c(37, 50, 75, 100, 150)
+full_info$rls_assign = sapply(full_info$avg_read_length, function(x) rls_avail[which.min(abs(rls_avail-x))])
+table(paste0(full_info$rls_assign, "-", full_info$paired_end))
+table(full_info$rls_assign)
+table(full_info$paired_end)
+
+
+
+

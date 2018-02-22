@@ -2,7 +2,7 @@ base_dir = "/dcl01/leek/data/ta_poc/geuvadis"
 setwd(base_dir)
 ##### Collate quantified expression across methods
 ##### Currently set to quantif 75bp single end simulation
-rl = 37
+rl = 75
 paired = 1
 condition = paste0(rl, "_", paired)
 samples = paste0("sample_0", 1)
@@ -24,7 +24,8 @@ TxDb = makeTxDbFromGFF("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.gtf")
     truth$reads[!is.na(mat)] = counts_matrix[mat[!is.na(mat)],1]
 
 ### Load and parse the recountNNLS counts
-load("recount/rse_tx.rda")
+# load("recount/rse_tx_simplese.rda")
+load("recount/rse_tx_hybridse.rda")
 recountNNLS = assays(rse_tx)$counts[match(truth$tx_name, rownames(rse_tx)),]
 	recountNNLS = recountNNLS/paired
 recountNNLSse = assays(rse_tx)$se[match(truth$tx_name, rownames(rse_tx)),]
@@ -54,7 +55,8 @@ cl = as.numeric(as.character(cufflinks_cov[,2]))*truth$tx_len/rl/paired
 
 ### cbind all counts
 info = data.frame(recountNNLS=recountNNLS, kl=kl, cl=cl, rsem=rsem, sl=sl)
-save(info, truth, recountNNLSse, file="results.rda")
+# save(info, truth, recountNNLSse, file="results_simplese.rda")
+save(info, truth, recountNNLSse, file="results_hybridse.rda")
 
 ##########################################################################################
 ### Compile metrics Across Scenarios
@@ -62,20 +64,27 @@ save(info, truth, recountNNLSse, file="results.rda")
 base_dir = "/dcl01/leek/data/ta_poc/geuvadis"
 setwd(base_dir)
 setwd("simulation")
-table = NULL
+table_rmse = NULL
+table_mrd = NULL
 ids = c("37_1", "50_1", "75_1", "100_1", "150_1", "37_2", "50_2", "75_2", "100_2", "150_2")
 for(id in ids){
 	load(paste0(id, "/results.rda"))
+	info[is.na(info)] = 0
 	err = info-truth$reads
 		err[is.na(err)]=0
 	rmse = sqrt(apply(err^2, 2, mean))
-	# rd = abs(info-truth$reads)/(info+truth$reads)*2
-	# 	rd[is.na(rd)] = 0
-	# mrd = apply(rd, 2, median)
-	table = rbind(table, rmse)
+	table_rmse = rbind(table_rmse, rmse)
+	rd = abs(info-truth$reads)/(info+truth$reads)*2
+		rd[is.na(rd)] = 0
+	# mrd = apply(rd*(truth$reads+1), 2, sum)/sum(truth$reads+1)
+	mrd = apply(rd, 2, mean)
+	table_mrd = rbind(table_mrd, mrd)
 }
-rownames(table)=ids
-save(table, file="results.rda")
+rownames(table_rmse)=ids
+rownames(table_mrd)=ids
+round(table_rmse, 1)
+round(table_mrd, 3)
+save(table_rmse, table_mrd, file="~/aggregate_results.rda")
 
 
 

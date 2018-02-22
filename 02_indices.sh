@@ -1,22 +1,23 @@
 ##### Contains the code to build all indices use in the analysis
-cd
+cd /dcl01/leek/data/ta_poc/	
 ##########################################################################################
 ##### Full hg38 genome
 ##########################################################################################
-mkdir GencodeV25
-cd GencodeV25
-hisat2-build -f hg38.fa hisat2-index-hg38/hisat2-ind
+wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/data/grch38.tar.gz -O /dcl01/leek/data/ta_poc/hisat2-indices/genome-index.tar.gz
+cd /dcl01/leek/data/ta_poc/hisat2-indices/
+tar -xvzf genome-index.tar.gz
 
 ##########################################################################################
 ##### Coding genes of GencodeV25 annotation
 ##########################################################################################
 
 ## HISAT2 ################################################################################
-cd GencodeV25
+cd /dcl01/leek/data/ta_poc/GencodeV25
 python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.coding.gtf > gencodeV25.coding.exons
 python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.coding.gtf > gencodeV25.coding.splice.sites
 hisat2-build --exon gencodeV25.coding.exons --ss gencodeV25.coding.splice.sites \
-	GencodeV25/hg38.fa hisat2-full-index/hisat2-ind-full
+	/dcl01/leek/data/ta_poc/hg38/hg38.fa \
+	/dcl01/leek/data/ta_poc/hisat2-indices/hisat2-hg38-index
 
 ## Kallisto ##############################################################################
 PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
@@ -45,11 +46,14 @@ sailfish index -t GencodeV25/gencodeV25.coding.fa  -o  sailfish-index -k 31 -p 1
 
 ## HISAT2 ################################################################################
 samtools faidx hg38_sim.fasta
-gffread -w sim.fa -g hg38_sim.fasta gencodeV25.sim.gtf
+cd GencodeV25
+# gffread -w sim.fa -g hg38_sim.fasta gencodeV25.sim.gtf
 python ~/hisat2-2.0.5/hisat2_extract_exons.py gencodeV25.sim.gtf > gencodeV25.sim.exons
 python ~/hisat2-2.0.5/hisat2_extract_splice_sites.py gencodeV25.sim.gtf > gencodeV25.sim.splice.sites
-hisat2-build --exon gencodeV25.sim.exons --ss gencodeV25.sim.splice.sites /dcl01/leek/data/ta_poc/GencodeV25/hg38_sim.fasta \
-	/dcl01/leek/data/ta_poc/hisat2-full-index/hisat2-ind-detailed
+hisat2-build --exon /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.exons \
+	--ss /dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.splice.sites \
+	/dcl01/leek/data/ta_poc/GencodeV25/hg38.fa \
+	/dcl01/leek/data/ta_poc/hisat2-indices/hisat2-sim
 
 ## Kallisto ##############################################################################
 PATH=$PATH:/users/jmfu/kallisto_linux-v0.43.0/
