@@ -29,14 +29,14 @@ for(id in ids){
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
       text(x=0.5, y=0.8, pos=1, "Tx Level", cex=2)
 
-      bord = 12
+      bord = 12/2
 
       ### First set of MA plots
       for(i in 1:5){
-            A = log(info[,i]+1, 2) + log(truth$reads+1, 2)
+            A = (log(info[,i]+1, 2) + log(truth$reads+1, 2))/2
             M = log(info[,i]+1, 2) - log(truth$reads+1, 2)
 
-            plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
+            plot(M~A, ylim=c(-bord*2, bord*2), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
                   main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
             # abline(h=0, col=2)
             # abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
@@ -48,47 +48,6 @@ for(id in ids){
       }
       axis(side=1, at = log(c(1, 10, 100, 1000, 10000, 100000, 1000000), 2),
             labels=parse(text = c(1, 10, 100, '10^3', '10^4', '10^5', '10^6')))
-
-      # plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
-      # plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
-      # text(x=0.5, y=0.8, pos=1, "Gene Level", cex=2)
-      ### Convert to gene-level
-      # info_gene = NULL
-      # for(i in 1:5){
-      #       info_gene = cbind(info_gene, by(info[,i], truth$gene_id, sum))
-      # }
-      # info = info_gene
-      # info[is.na(info)] = 0
-      # real = as.numeric(by(truth$reads, truth$gene_id, sum))
-      # ### RMSE
-      # err = info-real
-      # metric = apply(err, 2, function(x) sqrt(mean(x^2)))
-      # metric1 = signif(metric, 3)
-      # mlab1 = "RMSE"
-      # ### MRD
-      # rd = abs(info-real)/(info+real)*2
-      #       rd[is.na(rd)] = 0
-      # metric2 = apply(rd*real, 2, sum)/sum(real)
-      # metric2 = signif(metric2, 3)
-      # mlab2="MRD"
-
-      # ### Second set of MA plots
-      # bord = 12
-
-      # for(i in 1:5){
-      #       A = log(info[,i]+1, 2) + log(real+1, 2)
-      #       M = log(info[,1]+1, 2) - log(real+1, 2)
-      #       plot(M~A, ylim=c(-bord, bord), xlim=c(0.5, bord)*2, col=rgb(0,0,0,0.1), 
-      #             main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
-      #       axis(side=4, at = log(c(1/10000, 1/1000, 1/100, 1/10, 1, 10, 100, 1000, 10000),2),
-      #             labels=parse(text = c('10^-4', '10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3', '10^4')), las=2)
-      #       window = par()$usr
-      #       ywid = window[4]-window[3]
-      #       text((window[1]+window[2])/2,  window[4]-ywid/10, labels=paste0(mlab2, ": ", metric2[i]), cex=1.5)
-      #       text((window[1]+window[2])/2,  window[3]+ywid/10, labels=paste0(mlab1, ": ", metric1[i]), cex=1.5)
-      # }
-      # axis(side=1, at = log(c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000), 2),
-      #       labels=parse(text = c(10, 100, '10^3', '10^4', '10^5', '10^6', '10^7', '10^8', '10^9')))
 
       par(xpd=NA)
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
