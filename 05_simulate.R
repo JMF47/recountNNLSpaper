@@ -1,4 +1,4 @@
-##### Contains the code to simulate the simulation data (chr1 + chr 14)
+##### Contains the code to simulate the full synthetic data (chr1 + chr 14)
 ##### Currently set to 75bp, single end simulation
 ##### Change values of rl and pe to simulate the other conditions in the study
 
@@ -62,34 +62,34 @@ setwd(base_dir)
 ### Quantify
 ##########################################################################################
 rm(list=ls())
-rl = 37
-paired = 1
+rl = 150
+paired = 2
 condition = paste0(rl, "_", paired)
 samples = paste0("sample_0", 1)
 outdir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition)
 dir.create(outdir)
 setwd(outdir)
 
-##########################################################################################
-### Rail-RNA
-if(paired==1){
-	files = paste0("simulation/", condition, "/reads/", samples, ".fasta")
-	man = cbind(files, 0, samples)
-	rail_dir = paste0("simulation/", condition, "/rail")
-	dir.create(rail_dir)
-	write.table(man, sep="\t", quote=F, col.names=F, row.names=F, file=paste0(rail_dir, "/manifest.txt"))	
-}else{
-	files = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/reads/", samples)
-	man = cbind(paste0(files, "_1.fasta"), 0, paste0(files, "_2.fasta"), 0, samples)
-	rail_dir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/rail")
-	dir.create(rail_dir)
-	write.table(man, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE, file=paste0(rail_dir, "/manifest.txt"))	
-}
-dir.create(paste0("simulation/", condition, "/recount/"))
-dir.create(paste0("simulation/", condition, "/recount/logs"))
-index="/dcl01/leek/data/HG38_rail/Homo_sapiens/UCSC/hg38/Sequence/"
-setwd(rail_dir)
-system2("rail-rna", paste0("go local -x ", index, "/BowtieIndex/genome ", index, "/Bowtie2Index/genome -m ", rail_dir, "/manifest.txt"))
+# ##########################################################################################
+# ### Rail-RNA
+# if(paired==1){
+# 	files = paste0("simulation/", condition, "/reads/", samples, ".fasta")
+# 	man = cbind(files, 0, samples)
+# 	rail_dir = paste0("simulation/", condition, "/rail")
+# 	dir.create(rail_dir)
+# 	write.table(man, sep="\t", quote=F, col.names=F, row.names=F, file=paste0(rail_dir, "/manifest.txt"))	
+# }else{
+# 	files = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/reads/", samples)
+# 	man = cbind(paste0(files, "_1.fasta"), 0, paste0(files, "_2.fasta"), 0, samples)
+# 	rail_dir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/rail")
+# 	dir.create(rail_dir)
+# 	write.table(man, sep="\t", quote=FALSE, col.names=FALSE, row.names=FALSE, file=paste0(rail_dir, "/manifest.txt"))	
+# }
+# dir.create(paste0("simulation/", condition, "/recount/"))
+# dir.create(paste0("simulation/", condition, "/recount/logs"))
+# index="/dcl01/leek/data/HG38_rail/Homo_sapiens/UCSC/hg38/Sequence/"
+# setwd(rail_dir)
+# system2("rail-rna", paste0("go local -x ", index, "/BowtieIndex/genome ", index, "/Bowtie2Index/genome -m ", rail_dir, "/manifest.txt"))
 
 ### recountNNLS
 library(recountNNLS); library(recountNNLSdata)
@@ -191,7 +191,7 @@ for(s in samples){
 rm(list=ls())
 library(Biostrings); library(GenomicFeatures); library(stringr); library(rtracklayer)
 library(SummarizedExperiment)
-rl = 150
+rl = 75
 paired = 2
 condition = paste0(rl, "_", paired)
 samples = paste0("sample_0", 1)
@@ -207,9 +207,9 @@ TxDb = makeTxDbFromGFF("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.gtf")
 
 ### Load and parse the recountNNLS counts
 # load("recount/rse_tx_simplese.rda")
-load(paste0("~/", rl, "_", paired, "_1_HC4.rda"))
+load(paste0("~/", rl, "_", paired, ".rda"))
 recountNNLS = assays(rse_tx)$counts[match(truth$tx_name, rownames(rse_tx)),]
-	recountNNLS = recountNNLS/paired
+	recountNNLS = recountNNLS
 recountNNLSse = assays(rse_tx)$se[match(truth$tx_name, rownames(rse_tx)),]
 recountNNLSscore = assays(rse_tx)$score[match(truth$tx_name, rownames(rse_tx)),]
 

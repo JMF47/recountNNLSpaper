@@ -1,3 +1,5 @@
+##### Contains the code to simulate and run analysis based on RSEM estimates of ERR188410
+
 rm(list=ls())
 library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrings); library(Rsamtools); 
 library(Biostrings); library(GenomicFeatures); library(BSgenome.Hsapiens.UCSC.hg38)

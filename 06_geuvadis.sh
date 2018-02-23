@@ -1,7 +1,5 @@
+##### Script to quantify the geuvadis ERR188410
 cd /dcl01/leek/data/ta_poc/
-##### Script to quantify the geuvadis ERR188410 [excluding recountNNLS]
-##### Paths to ERR188410
-
 f=ERR188410
 ##########################################################################################
 # HISAT2(2.0.5)-StringTie(1.3.3b)
