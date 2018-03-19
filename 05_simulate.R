@@ -62,8 +62,8 @@ setwd(base_dir)
 ### Quantify
 ##########################################################################################
 rm(list=ls())
-rl = 150
-paired = 2
+rl = 75
+paired = 1
 condition = paste0(rl, "_", paired)
 samples = paste0("sample_0", 1)
 outdir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition)
@@ -76,7 +76,7 @@ setwd(outdir)
 # 	files = paste0("simulation/", condition, "/reads/", samples, ".fasta")
 # 	man = cbind(files, 0, samples)
 # 	rail_dir = paste0("simulation/", condition, "/rail")
-# 	dir.create(rail_dir)
+	#dir.create(rail_dir)
 # 	write.table(man, sep="\t", quote=F, col.names=F, row.names=F, file=paste0(rail_dir, "/manifest.txt"))	
 # }else{
 # 	files = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition, "/reads/", samples)
@@ -99,7 +99,7 @@ jx_file = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/', condition, '/ra
 table = data.frame(project=rl, run=samps, bigwig_path=bw, rls=rl, paired_end=(paired==2))
 pheno = processPheno(table)
 rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=20)
-save(rse_tx, file=paste0("~/", rl, "_", paired, ".rda"))
+save(rse_tx, file=paste0("~/", rl, "_", paired, "_0.rda"))
 
 ##########################################################################################
 ### HISAT2-cufflinks (2.0.5-2.2.1)
@@ -133,10 +133,15 @@ annotation="/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.gtf"
 
 setwd(outdir)
 for(s in samples){
+	outBam = paste0(outdir, "/hisat2/sorted/", s, ".cl")
 	workingDir = paste0(cufflinks_dir, "/", s)
+	workingDir2 = paste0(cufflinks_dir_default, "/", s)
 	system2("mkdir", workingDir)
+	system2("mkdir", workingDir2)
 	system2("cufflinks", paste0("-m 250 -s 25 --total-hits-norm --no-effective-length-correction --no-length-correction -o ",
 		workingDir, " -G ", annotation, " ", outBam, ".bam"))
+	system2("cufflinks", paste0("-m 250 -s 25 -o ",
+		workingDir2, " -G ", annotation, " ", outBam, ".bam"))
 }
 
 ##########################################################################################
@@ -191,8 +196,8 @@ for(s in samples){
 rm(list=ls())
 library(Biostrings); library(GenomicFeatures); library(stringr); library(rtracklayer)
 library(SummarizedExperiment)
-rl = 75
-paired = 2
+rl = 37
+paired = 1
 condition = paste0(rl, "_", paired)
 samples = paste0("sample_0", 1)
 outdir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition)
@@ -207,11 +212,12 @@ TxDb = makeTxDbFromGFF("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.sim.gtf")
 
 ### Load and parse the recountNNLS counts
 # load("recount/rse_tx_simplese.rda")
-load(paste0("~/", rl, "_", paired, ".rda"))
+load(paste0("~/", rl, "_", paired, "_0.rda"))
 recountNNLS = assays(rse_tx)$counts[match(truth$tx_name, rownames(rse_tx)),]
 	recountNNLS = recountNNLS
 recountNNLSse = assays(rse_tx)$se[match(truth$tx_name, rownames(rse_tx)),]
 recountNNLSscore = assays(rse_tx)$score[match(truth$tx_name, rownames(rse_tx)),]
+recountNNLSdf = assays(rse_tx)$df[match(truth$tx_name, rownames(rse_tx)),]
 
 ### Load and parse the kallisto counts
 kallisto = read.table("kallisto/sample_01/abundance.tsv", header=T)
@@ -238,4 +244,4 @@ cl = as.numeric(as.character(cufflinks_cov[,2]))*truth$tx_len/rl/paired
 
 ### cbind all counts
 info = data.frame(recountNNLS=recountNNLS, kl=kl, cl=cl, rsem=rsem, sl=sl)
-save(info, recountNNLSse, recountNNLSscore, truth, file=paste0("~/", rl, "_", paired, "_info.rda"))
+save(info, recountNNLSse, recountNNLSscore, recountNNLSdf, truth, file=paste0("~/", rl, "_", paired, "_info.rda"))

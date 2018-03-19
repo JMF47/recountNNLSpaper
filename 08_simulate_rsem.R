@@ -71,13 +71,14 @@ index="/dcl01/leek/data/HG38_rail/Homo_sapiens/UCSC/hg38/Sequence/"
 system2("rail-rna", paste0("go local --deliverables tsv bw -x ", index, "/BowtieIndex/genome ", index, "/Bowtie2Index/genome -m manifest.txt"))
 
 library(recountNNLS); library(recountNNLSdata)
+cores=20
 samps = "sample_01"
 bw = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rail/rail-rna_out/coverage_bigwigs/', samps, '.bw')
 jx_file = paste0('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rail/rail-rna_out/cross_sample_results/junctions.tsv.gz')
-table = data.frame(project=rl, run=samps, bigwig_path=bw, rls=rl, paired_end=(paired==2))
+table = data.frame(project=rl, run=samps, bigwig_path=bw, rls=rl, paired_end=TRUE)
 pheno = processPheno(table)
 rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=20)
-save(rse_tx, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rse_tx.rda")
+save(rse_tx, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rse_tx_0.rda")
 
 ##########################################################################################
 ### HISAT2-cufflinks (2.0.5-2.2.1)
@@ -139,22 +140,22 @@ system2("/users/jmfu/Salmon-0.8.2_linux_x86_64/bin/salmon", paste0("quant -i ", 
 ### Compile information
 #################################################################################
 rm(list=ls())
-setwd('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2')
-load('truth.rda')
-load("rse_tx.rda")
+load('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/truth.rda')
+load("/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/rse_tx_0.rda")
 ind = match(rownames(count_mat), rownames(rse_tx))
 rse_sub = rse_tx[ind,]
-output = cbind(assays(rse_sub)$counts/2, assays(rse_sub)$se/2, assays(rse_sub)$scores)
 tx_info = rowData(rse_sub)
-se = assays(rse_sub)$se/2
+se = assays(rse_sub)$se
 score = assays(rse_sub)$score
+df = assays(rse_sub)$df
 
+setwd('/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/')
 cl = rtracklayer::import('hisat2/cufflinks/sample_01/transcripts.gtf')
 kallisto = read.table('kallisto/abundance.tsv', header=T)
 salmon = read.table('salmon/sample_01/quant.sf', header=T)
 
 tx_list = rownames(rse_sub)
-out = output[,1]
+out = assays(rse_sub)$counts
 kallisto_mat = match(tx_list, kallisto$target_id)
 	out = cbind(out, kl = kallisto$est_counts[kallisto_mat])
 cl = cl[cl$type=="transcript"]
@@ -166,6 +167,5 @@ tx_list = stringr::str_replace(tx_list, "_PAR_Y", "")
 salmon_mat = match(tx_list, salmon$Name)
 	out = cbind(out, sl = salmon$NumReads[salmon_mat])
 	out = data.frame(out)
-save(out, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/75_2/out.rda")
-save(out, count_mat, se, score, file="~/rsem_based.rda")
+save(out, count_mat, se, score, df, file="~/rsem_based_0.rda")
 
