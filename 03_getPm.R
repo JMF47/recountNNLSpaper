@@ -3,8 +3,41 @@ rm(list=ls())
 library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrings); library(Rsamtools); 
 library(Biostrings); library(GenomicFeatures); library(BSgenome.Hsapiens.UCSC.hg38)
 
-########################################################################
-### functions for matrix creation
+##################################################################################
+### Create the bins for each read length category
+##################################################################################
+library(rtracklayer)
+gff = import.gff("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.gtf")
+gff_exons = gff[gff$type=="exon"]
+gff_jx = unique(unlist(GRangesList(mclapply(paste0("chr", c(1:22, "X", "Y")), getIntrons, gff_exons, mc.cores=20))))
+	save(gff_jx, file="/dcl01/leek/data/ta_poc/GencodeV25/gff_jx.rda")
+gff_dj = disjoin(gff_exons, ignore.strand=TRUE)
+export(gff_dj, con="/dcl01/leek/data/ta_poc/GencodeV25/bins_dj.bed", format="bed")
+
+gff_ex = import.bed("/dcl01/leek/data/ta_poc/GencodeV25/bins_dj.bed")
+
+sGR = function(i, subset, subsize){
+	print(i); flush.console()
+	return(exomeCopy::subdivideGRanges(subset[i], subsize=subsize))
+}
+
+rls = c(37, 50, 75, 100, 150)
+for(rl in rls){
+	gff_nodivide = gff_ex[width(gff_ex)<(rl*2)]
+		values(gff_nodivide) = NULL
+	gff_divide = gff_ex[width(gff_ex)>=(rl*2)]
+	subset_divided = mclapply(1:length(gff_divide), sGR, gff_divide, rl, mc.cores=20)
+	subset_grl = GRangesList(unlist(subset_divided))
+	subset_ul = unlist(subset_grl)
+	total = c(gff_nodivide, subset_ul)
+	total_clean = sortSeqlevels(total)
+	total_clean = sort(total_clean, ignore.strand=T)
+	export.bed(total_clean, con=paste0("/dcl01/leek/data/ta_poc/GencodeV25/bins_", rl, ".bed"), format="bed")
+}
+
+##################################################################################
+### Functions for matrix creation
+##################################################################################
 getSequence = function(transcript_id, TxSeq){
 	return(TxSeq[names(TxSeq)==transcript_id])
 }
@@ -108,7 +141,10 @@ writeF = function(gene_id, directory, readLens, gff_ex, gff_jx){
 	}
 	return(0)
 }
-########################################################################
+
+##################################################################################
+### Obtain matrices for each read length
+##################################################################################
 setwd("/dcl01/leek/data/ta_poc/")
 ### Get all the transcript sequences
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -123,14 +159,13 @@ rls = c(37, 50, 75, 100, 150)
 
 load('/dcl01/leek/data/ta_poc/GencodeV25/gff_jx.rda')
 for(readLens in rls){
-	readLens = 150
 	directory = paste0("GencodeV25/pileup_", readLens, "/")
 	gff_ex = import.bed(paste0("GencodeV25/bins_", readLens, ".bed"))
 	diagnostic = mclapply(genes, writeF, directory, readLens, gff_ex, gff_jx, mc.cores=20)	
 }
 
 ##########################################################################################
-### create rda
+### Compile matrices into rdas
 ##########################################################################################
 library(stringr); library(parallel)
 getEmissionHelper = function(file, rl){
@@ -142,13 +177,17 @@ getEmissionHelper = function(file, rl){
 	return(emission_matrix)
 }
 
-rl = 100
-setwd(paste0("/dcl01/leek/data/ta_poc/GencodeV25/pileup_", rl, "/Fs"))
-files = list.files()
-matrix_list = mclapply(files, getEmissionHelper, rl, mc.cores=20)
-names(matrix_list) = stringr::str_replace(files, ".tab", "")
-matrix_100 = matrix_list
-save(matrix_100, file='/dcl01/leek/data/ta_poc/GencodeV25/matrix_100.rda')
+rls = c(37, 50, 75, 100, 150)
+for(rl in rls){
+	setwd(paste0("/dcl01/leek/data/ta_poc/GencodeV25/pileup_", rl, "/Fs"))
+	files = list.files()
+	matrix_list = mclapply(files, getEmissionHelper, rl, mc.cores=20)
+	names(matrix_list) = stringr::str_replace(files, ".tab", "")
+	assign(paste0("matrix_", rl), matrix_list)
+	save(list = paste0('matrix'_, rl), 
+		file=paste0('/dcl01/leek/data/ta_poc/GencodeV25/matrix_', rl, '.rda'))
+}
+
 
 
 

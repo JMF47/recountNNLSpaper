@@ -84,15 +84,17 @@ save(rse_tx, file="~/ERR188410.rda")
 ##########################################################################################
 # compile results
 ##########################################################################################
+rm(list=ls())
 library(rtracklayer); library(recountNNLS); library(SummarizedExperiment)
-load("~/ERR188410.rda")
+# load("~/ERR188410.rda")
+load("/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 sample = "ERR188410"
 tx_info = rowData(rse_tx)
 tx_list = rownames(rse_tx)
 
 ### compile information
-rn = assays(rse_tx)$counts[,sample]
-	scores = assays(rse_tx)$scores1[,sample]
+rn = assays(rse_tx)$fragments[,sample]
+	# scores = assays(rse_tx)$scores1[,sample]
 cl = import(paste0('/dcl01/leek/data/ta_poc/geuvadis/hisat2-cufflinks/cufflinks/', sample, '/transcripts.gtf'))
 rsem = read.table(paste0('/dcl01/leek/data/ta_poc/geuvadis/rsem/', sample, '.isoforms.results'), header=T)
 kallisto = read.table(paste0('/dcl01/leek/data/ta_poc/geuvadis/kallisto/', sample, '/abundance.tsv'), header=T)
@@ -114,21 +116,9 @@ salmon_mat = match(tx_list, salmon$Name)
 out[is.na(out)] = 0
 
 ### Spearman's correlation
-cors=cor(out, method="spearman")
+cors=cor(out, method="spearman", use="complete")
 
 ### Agreement between expressed transcripts
 out01 = out>0
 t(out01) %*% out01
-
-tx_info = rowData(rse_tx)
-totals = apply(out, 2, sum)
-fpkm = t(t(out/(tx_info$tx_len/1000))/(totals/1000000))
-
-cor(out, method="spearman", use="complete")
-cor(out[out[,1]>10,], method="spearman", use="complete")
-out$test0 = out
-
-cor(fpkm, method="spearman", use="complete")
-cor(fpkm[fpkm[,1]>10,], method="spearman", use="complete")
-
 

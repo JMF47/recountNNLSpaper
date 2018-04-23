@@ -1,6 +1,7 @@
 #################################################################################
 ### Creating features
 #################################################################################
+png("~/downloads/sim_robust_se/fig1.png", height=400, width=400)
 par(xpd=NA)
 layout(matrix(1:3, ncol=1), heights = c(2, 2, 3))
 par(mar=c(2, 0.5, 2, 0.5))
@@ -38,6 +39,7 @@ text(x=100, y=c(2, 0.5), labels = c("Tx 1", "Tx 2"), pos=2)
 rect(xleft=c(100, 200, 300, 400, 500, 600, 700), xright=c(200, 300, 400, 500, 600, 700, 800), ytop = -.5, ybot=-1.5, lty=c(1, 1, 1, 2, 1, 1, 1), border=2)
 text(x=100, y=c(-1), labels = c("Feature"), pos=2, col=2)
 text(c(150, 250, 350, 450, 550, 650, 750), y=rep(-1, 7), labels=1:7, col=2)
+dev.off()
 
 #################################################################################
 ### Data generating process
@@ -153,7 +155,7 @@ for(paired in 1:2){
 		main="Mean Absolute Error", pch=19, ty="b")
 		u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
 		for(i in 2:5) points(err_cats[,i], col=cols[i], pch=19, ty="b")
-		legend('topright', legend = c("rc", "kl", "cl", "rsem", "sl"), col=cols, fill=cols, ncol=2, cex=0.8)
+		legend('topright', legend = c("nnls", "kl", "cl", "rsem", "sl"), col=cols, fill=cols, ncol=2, cex=0.8)
 		axis(side=1, at = 1:length(means), labels = names(means), las=2)
 		text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
 		text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
@@ -229,7 +231,7 @@ plot(mae_complete[1:5,1]~rls, ylab="Mean Absolute Error", xlab="", xaxt="n",
 	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
 	for(i in 2:5) points(mae_complete[1:5,i]~rls, col=cols[i], pch=19, ty="b")
 	text(x=(u[2] - (u[2]-u[1])/20), y=(u[4]-(u[4]-u[3])/20), pos=1, labels="(A)")
-legend('bottomright', legend = c("rc", "kl", "cl"), col=cols, fill=cols, ncol=3, cex=0.8)
+legend('bottomright', legend = c("nnls", "kl", "cl"), col=cols, fill=cols, ncol=3, cex=0.8)
 axis(side=1, at = rls, labels = rls)
 par(mar=c(2, 0, 2, 4))
 plot(mae_complete[6:10,1]~rls, ylab="", xlab="", xaxt="n", yaxt="n",
@@ -289,7 +291,7 @@ legend('topright', legend = c("rc", "kl", "cl", "sl"), col=cols, fill=cols, ncol
 axis(side=1, at = 1:length(means), labels = names(means), las=2)
 text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
 # text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
-text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(B)")
+text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
 
 med_se = log(med_se+1, 10)
 plot(med_se, xaxt="n", ylab="log10 Median SE", xlab="", main="Median SE", pch=19, ylim=c(0, max(med_se)))
@@ -297,7 +299,7 @@ u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
 axis(side=1, at = 1:length(means), labels = names(means), las=2)
 text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
 # text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
-text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(C)")
+text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
 
 # plot(means, xaxt="n", xlab="", ylab="Average 95% CI coverage", pch=19,
 # ylim=c(0.8, 1), main="CI Coverage vs Uniqueness")

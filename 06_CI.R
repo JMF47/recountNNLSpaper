@@ -174,7 +174,7 @@ par(mar=c(4, 6, 4, 1))
 par(mar=c(4, 4, 4, 0))
 
 ind=6
-plot(means_list[[1]][ind,], ylab="Proportion of transcripts w/ adequate CI", 
+plot(means_list[[1]][ind,], ylab="Proportion of txs w/o nominal coverage", 
 	xlab="", xaxt="n", main="95% CI Single-End", pch=19, ty="b", ylim=c(0, max(means_list[[1]][6,])))
 for(i in 2:length(rls)){
 	points(means_list[[i]][ind,], col=i, pch=19, ty="b")

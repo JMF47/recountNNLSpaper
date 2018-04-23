@@ -24,7 +24,7 @@ for(id in ids){
       par(mar=rep(0,4))
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
       end = "Single End"
-      if(paired==T){end="Paired End"}
+      if(paired==2){end="Paired End"}
       text(x=0.4, y=0.5, srt=90, paste0(rl, "bp ", end, " Simulation Results"), cex=2, pos=3)
       plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
       text(x=0.5, y=0.8, pos=1, "Tx Level", cex=2)
