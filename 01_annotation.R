@@ -32,6 +32,10 @@ gff_coding = gff_all[which(gff_all$gene_type=="protein_coding")]
 	export(gff_coding, con="gencodeV25.coding.gtf")
 system2("gffread", "-w gencodeV25.coding.fa -g hg38.fa gencodeV25.coding.gtf")
 
+### Subset to only the transcripts on chr1 for confidence interval simulations later
+gff1 = gff_coding[seqnames(gff_coding) %in% "chr1"]
+export(gff1, con="gencodeV25.coding.chr1.gff3")
+
 ##########################################################################################
 ### Subset to coding transcripts on chr1 and chr14
 ##########################################################################################

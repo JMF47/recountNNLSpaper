@@ -1,4 +1,5 @@
-##### Contains the code to build all indices use in the analysis
+##### Contains the code to build all indices used in the analysis
+
 cd /dcl01/leek/data/ta_poc/	
 ##########################################################################################
 ##### Full hg38 genome

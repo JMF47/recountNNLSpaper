@@ -8,7 +8,8 @@ for(id in ids){
       scenario = str_split_fixed(id, "_", n=2)
       rl = scenario[1]
       paired = scenario[2]
-      load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
+      # load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
+      load(paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", id, "/", rl, "_", paired, "_info.rda"))
       ses = recountNNLSse
       scores = recountNNLSscore
 
@@ -16,7 +17,8 @@ for(id in ids){
       mlab = "MAE"
       metric = round(apply(abs(err), 2, mean, na.rm=T), 3)
       
-      png(paste0('~/downloads/preprint_update/graphics/', id, "_MA.png"), width=400, height=800, units = "px", pointsize=18)
+      png(paste0('~/graphics/', id, "_MA.png"), 
+            width=400, height=800, units = "px", pointsize=18, type="cairo")
       layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
             heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
 
@@ -70,13 +72,14 @@ for(id in ids){
 ####################################################
 ### MA Plots - RSEM-based
 ####################################################
-load("~/downloads/preprint_update/rsem_based_0.rda")
+load("~/rsem_based_0.rda")
 out = cbind(out,out[,4])
 err = out-count_mat[,1]
 mlab = "MAE"
 metric = round(apply(abs(err), 2, mean, na.rm=T), 3)
 
-png(paste0('~/downloads/preprint_update/graphics/RSEM_MA.png'), width=400, height=800, units = "px", pointsize=18)
+png(paste0('~/graphics/RSEM_MA.png'), 
+      width=400, height=800, units = "px", pointsize=18, type="cairo")
 layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
       heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
 

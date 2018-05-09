@@ -1,7 +1,7 @@
 #################################################################################
 ### Creating features
 #################################################################################
-png("~/downloads/sim_robust_se/fig1.png", height=400, width=400)
+png("~/graphics/fig1.png", height=400, width=400, type="cairo")
 par(xpd=NA)
 layout(matrix(1:3, ncol=1), heights = c(2, 2, 3))
 par(mar=c(2, 0.5, 2, 0.5))
@@ -44,7 +44,7 @@ dev.off()
 #################################################################################
 ### Data generating process
 #################################################################################
-png("~/downloads/sim_robust_se/fig2.png", height=400, width=400)
+png("~/graphics/fig2.png", height=400, width=400, type="cairo")
 layout(matrix(1:6, nrow=1), widths = c(1, 2, 2, 1, 0.5, 1))
 par(mar=c(0, 0, 4, 0))
 plot(c(0, 4), c(-0.5, 8), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
@@ -112,7 +112,9 @@ rls = c(37, 50, 75, 100, 150)
 mae_complete = NULL
 for(paired in 1:2){
 	for(rl in rls){
-		load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
+		condition = paste0(rl, "_", paired)
+		outdir = paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", condition)
+		load(paste0(outdir, "/", rl, "_", paired, "_info.rda"))
 		info = info
 		truth = truth
 		ses = recountNNLSse
@@ -127,10 +129,8 @@ for(paired in 1:2){
 		err_cats = apply(err, 2, function(x) by(abs(x), score_cat, mean, na.rm=T))
 		mae_complete = rbind(mae_complete, apply(abs(err), 2, mean, na.rm=T))
 
-		# png(paste0("~/downloads/preprint_update/graphics/", rl, "_", paired, ".png"), width=600, height=600)
-		png(paste0("~/downloads/preprint_update/graphics/", rl, "_", paired, ".png"), width=900, height=300)
+		png(paste0("~/graphics/", rl, "_", paired, ".png"), width=900, height=300, type="cairo")
 		cols = c("black", "red", "orange", "purple", "green")
-		# par(mfrow=c(2,2))
 		par(mfrow=c(1,3))
 		par(ps = 12, cex = 1, cex.main = 1)
 		par(mar=c(4.5, 4, 4, 2))
@@ -140,7 +140,7 @@ for(paired in 1:2){
 		text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
 		hist(scores, breaks=seq(0, 1, by=0.1), add=T, col=0)
 
-		### calculate CI coverage as a function of score cat
+		### calculate CI, mae and median se broken down by score category
 		stats = qt(0.975, df)
 		cis = data.frame(cil=info[,1]-stats*ses, ciu=info[,1]+stats*ses)
 		cis$truth = truth$reads; cis$bs = info[,1]; cis$scores = scores
@@ -165,61 +165,13 @@ for(paired in 1:2){
 		u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
 		axis(side=1, at = 1:length(means), labels = names(means), las=2)
 		text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-		# text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(C)")
 		text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
 		dev.off()
-
-		### 1-rep CIs
-		# hit = (cis$cil<=cis$truth & cis$ciu>=cis$truth)
-		# means1 = by(hit, score_cat_1, mean)
-		# plot(means, xaxt="n", xlab="", ylab="Average 95% CI Coverage", pch=19,
-		# ylim=c(0.8, 1), main="CI Coverage vs Uniqueness")
-		# u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-		# axis(side=1, at = 1:length(means), labels = names(means), las=2)
-		# abline(h=0.95, col=2)
-		# text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-		# # text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(D)")
-		# text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(D)")
-		# dev.off()
-
-  		### 100-rep CIs
-  # 		if(paired==1){
-  # 			load(paste0("/users/jackfu/downloads/CI_cal/CI_cal_countmat_", rl, ".rda"))
-		# 	load(paste0("/users/jackfu/downloads/CI_cal/CI_", rl, ".rda"))	
-		# }else{
-		# 	load(paste0("/users/jackfu/downloads/CI_cal/CI_cal_countmat_", rl, "_2.rda"))
-		# 	load(paste0("/users/jackfu/downloads/CI_cal/CI_", rl, "_2.rda"))	
-		# }
-		# rse_sub = rse_tx[match(rownames(count_mat), rownames(rse_tx)),]
-		# bs = assays(rse_sub)$fragments
-		# se = assays(rse_sub)$ses
-		# score = assays(rse_sub)$scores
-		# df = assays(rse_sub)$df
-		# stats = qt(0.975, as.numeric(df[,1]))
-		# cil = bs-stats*se
-		# ciu = bs+stats*se
-		# hit = (cil<=count_mat)*(ciu>=count_mat)
-
-		# hits = apply(hit, 1, mean)
-		# score_cat = cut(score[,1], seq(0, 1, by=0.1))
-		# thresholds = seq(0.9, 1, by=0.01)
-		# means = NULL
-		# for(thresh in thresholds){
-		# 	means = rbind(means,  by(hits, score_cat, function(x) mean(x<thresh, na.rm=T)))
-		# }
-		# plot(1-means[6,], xaxt="n", xlab="", ylab="Proportion of Transcripts", pch=19,
-		# 	ylim=c(0, 1), main="Transcripts with Adequate 95% CIs")
-		# u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-		# axis(side=1, at = 1:length(levels(score_cat)), labels = levels(score_cat), las=2)
-		# text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-		# # text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(D)")
-		# text(x=u[2]-(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(D)")
-		# dev.off()
 	}
 }
 
-### 
-png("~/downloads/preprint_update/graphics/performance_rl.png", height=400, width=800)
+### The overall performance plot across read lengths and paired-end status
+png("~/graphics/performance_rl.png", height=400, width=800, type="cairo")
 layout(matrix(c(1, 1, 2, 3, 4, 4), nrow=3, byrow=T), heights = c(0.5, 5, 0.5))
 par(ps = 12, cex = 1.2, cex.main = 1.2)
 par(mar=rep(0,4))
@@ -250,7 +202,7 @@ dev.off()
 #################################################################################
 ### Performance in RSEM
 #################################################################################
-load("~/downloads/preprint_update/rsem_based_0.rda")
+load("~/rsem_based_0.rda")
 err = abs(out-count_mat)
 mae = apply(abs(err), 2, mean, na.rm=T)
 	mae[5] = mae[4]; mae[4] = NA
@@ -259,56 +211,43 @@ err[is.na(err)] = 0
 score_cat = cut(score, seq(0, 1, by=0.1))
 err_cats = apply(err, 2, function(x) by(abs(x), score_cat, mean, na.rm=T))
 
-# png("~/downloads/preprint_update/graphics/rsem_based.png", height=600, width=600)
-png("~/downloads/preprint_update/graphics/rsem_based.png", height=300, width=900)
-cols = c("black", "red", "orange", "green")
-# par(mfrow=c(2,2))
-par(mfrow=c(1,3))
-par(ps = 12, cex = 1, cex.main = 1)
-par(mar=c(4.5, 4, 4, 2))
-hist(score, breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
-	main="Distribution of Uniqueness Scores", col=0)
-u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-hist(score, breaks=seq(0, 1, by=0.1), add=T, col=0)
-text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
+png("~/graphics/rsem_based.png", height=300, width=900, type="cairo")
+	cols = c("black", "red", "orange", "green")
+	par(mfrow=c(1,3))
+	par(ps = 12, cex = 1, cex.main = 1)
+	par(mar=c(4.5, 4, 4, 2))
+	hist(score, breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
+		main="Distribution of Uniqueness Scores", col=0)
+	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
+	hist(score, breaks=seq(0, 1, by=0.1), add=T, col=0)
+	text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
 
-### calculate errors and CI coverage as a function of uniquness
-stats = qt(0.975, df)
-cis = data.frame(cil=out[,1]-stats*se, ciu=out[,1]+stats*se)
-cis$truth = count_mat; cis$bs = out[,1]; cis$scores = score
-inds = which(cis$bs>0)
-cis = cis[inds,]
-score_cat_1 = cut(cis$scores, seq(0, 1, by=0.1))
-med_se = by(se[inds], score_cat_1, median, na.rm=T)
-hit = (cis[,1]<=cis[,3] & cis[,2]>=cis[,3])
-means = by(as.numeric(hit), score_cat_1, mean, na.rm=T)
+	### calculate errors and CI coverage as a function of uniquness
+	stats = qt(0.975, df)
+	cis = data.frame(cil=out[,1]-stats*se, ciu=out[,1]+stats*se)
+	cis$truth = count_mat; cis$bs = out[,1]; cis$scores = score
+	inds = which(cis$bs>0)
+	cis = cis[inds,]
+	score_cat_1 = cut(cis$scores, seq(0, 1, by=0.1))
+	med_se = by(se[inds], score_cat_1, median, na.rm=T)
+	hit = (cis[,1]<=cis[,3] & cis[,2]>=cis[,3])
+	means = by(as.numeric(hit), score_cat_1, mean, na.rm=T)
 
-plot(err_cats[,1], ylab="Mean Absolute Error", xlab="", xaxt="n", ylim=c(0, max(err_cats, na.rm=T)),
-main="Mean Absolute Error", pch=19, ty="b")
-u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-for(i in 2:4) points(err_cats[,i], col=cols[i], pch=19, ty="b")
-legend('topright', legend = c("rc", "kl", "cl", "sl"), col=cols, fill=cols, ncol=2, cex=0.8)
-axis(side=1, at = 1:length(means), labels = names(means), las=2)
-text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-# text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
-text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
+	plot(err_cats[,1], ylab="Mean Absolute Error", xlab="", xaxt="n", ylim=c(0, max(err_cats, na.rm=T)),
+	main="Mean Absolute Error", pch=19, ty="b")
+	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
+	for(i in 2:4) points(err_cats[,i], col=cols[i], pch=19, ty="b")
+	legend('topright', legend = c("rc", "kl", "cl", "sl"), col=cols, fill=cols, ncol=2, cex=0.8)
+	axis(side=1, at = 1:length(means), labels = names(means), las=2)
+	text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
+	text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
 
-med_se = log(med_se+1, 10)
-plot(med_se, xaxt="n", ylab="log10 Median SE", xlab="", main="Median SE", pch=19, ylim=c(0, max(med_se)))
-u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-axis(side=1, at = 1:length(means), labels = names(means), las=2)
-text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-# text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
-text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
-
-# plot(means, xaxt="n", xlab="", ylab="Average 95% CI coverage", pch=19,
-# ylim=c(0.8, 1), main="CI Coverage vs Uniqueness")
-# u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-# axis(side=1, at = 1:length(means), labels = names(means), las=2)
-# abline(h=0.95, col=2)
-# text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-# # text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(D)")
-# text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(D)")
+	med_se = log(med_se+1, 10)
+	plot(med_se, xaxt="n", ylab="log10 Median SE", xlab="", main="Median SE", pch=19, ylim=c(0, max(med_se)))
+	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
+	axis(side=1, at = 1:length(means), labels = names(means), las=2)
+	text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
+	text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
 dev.off()
 
 #################################################################################
@@ -322,9 +261,9 @@ xtable::xtable(mae_complete)
 ### ERR188410
 #################################################################################
 rm(list=ls())
-load("~/downloads/preprint_update/ERR188410.rda")
+load("/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 tx_info = rowData(rse_tx)
-gff = rtracklayer::import("~/downloads/gencodeV25.coding.dj.gff3")
+gff = rtracklayer::import("/dcl01/leek/data/ta_poc/GencodeV25/gencodeV25.coding.dj.gff3")
 
 plotTranscripts = function(gene, tx_list, gff, showUnique=T, fig_lab){
       anno = gff[gff$gene_id==gene]
@@ -373,47 +312,52 @@ plotTranscripts = function(gene, tx_list, gff, showUnique=T, fig_lab){
       par(xpd=F)
 }
 
-counts = assays(rse_tx)$counts[,2] 
-se = assays(rse_tx)$se[,2]
-score = assays(rse_tx)$score[,2]
+subjid="ERR188410"
+counts = assays(rse_tx)$fragments[,subjid] 
+se = assays(rse_tx)$ses[,subjid]
+score = assays(rse_tx)$scores[,subjid]
 
-png("~/downloads/preprint_update/graphics/se.png", width=1000, height=450, pointsize = 20)
-layout(matrix(c(1, 1, 2, 3, 4, 4, 5, 6), ncol=2, byrow=T), heights = c(0.5, 2, 0.5, 2), widths=c(4, 1))
-par(mar=rep(0, 4))
-plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
-text(x=0.5, y=0.8, pos=1, paste0("KLHL17"), cex=2)
+png("~/graphics/se.png", width=1000, height=450, pointsize = 20, type="cairo")
+	layout(matrix(c(1, 1, 2, 3, 4, 4, 5, 6), ncol=2, byrow=T), heights = c(0.5, 2, 0.5, 2), widths=c(4, 1))
+	par(mar=rep(0, 4))
+	plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", 
+		yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+	text(x=0.5, y=0.8, pos=1, paste0("KLHL17"), cex=2)
 
-gene = "ENSG00000187961.13"
-inds = which(tx_info$gene_id == gene)
-txs = tx_info$tx_name[inds]
-ord = order(se[inds], decreasing=T)
-ord2 = order(se[inds], decreasing=F)
-inds = inds[ord]
-plotTranscripts(gene, gff, tx_list=txs[ord2], fig_lab="")
+	gene = "ENSG00000187961.13"
+	inds = which(tx_info$gene_id == gene)
+	txs = tx_info$tx_name[inds]
+	ord = order(se[inds], decreasing=T)
+	ord2 = order(se[inds], decreasing=F)
+	inds = inds[ord]
+	plotTranscripts(gene, gff, tx_list=txs[ord2], fig_lab="")
 
-plot(c(0,1), c(1, length(txs)+1), ty="n", ylab="", xlab="", yaxt="n", main="", xaxs="i", yaxs="i", xaxt="n")
-text(signif(counts[inds], 3), x=0.2, y=seq(length(txs)+1, 2, by=-1)-0.5)
-text(signif(se[inds], 3), x=0.5, y=seq(length(txs)+1, 2, by=-1)-0.5, col=2)
-text(signif(score[inds], 3), x=0.8, y=seq(length(txs)+1, 2, by=-1)-0.5)
-par(xpd=NA)
-text(x=c(.2, .5, .8), y=7, pos=1, c(expression(beta), "SE", "Uniq"), cex=2)
+	plot(c(0,1), c(1, length(txs)+1), ty="n", ylab="", xlab="", 
+		yaxt="n", main="", xaxs="i", yaxs="i", xaxt="n")
+	text(signif(counts[inds], 3), x=0.2, y=seq(length(txs)+1, 2, by=-1)-0.5)
+	text(signif(se[inds], 3), x=0.5, y=seq(length(txs)+1, 2, by=-1)-0.5, col=2)
+	text(signif(score[inds], 3), x=0.8, y=seq(length(txs)+1, 2, by=-1)-0.5)
+	par(xpd=NA)
+	text(x=c(.2, .5, .8), y=7, pos=1, c(expression(beta), "SE", "Uniq"), cex=2)
 
-plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
-text(x=0.5, y=0.8, pos=1, paste0("G6PD"), cex=2)
+	plot(c(0, 1), c(0,1), xlab="", ylab="", xaxt="n", 
+		yaxt="n", type="n", main="", xaxs="i", yaxs="i", bty="n")
+	text(x=0.5, y=0.8, pos=1, paste0("G6PD"), cex=2)
 
-gene = "ENSG00000160211.15"
-inds = which(tx_info$gene_id == gene)
-txs = tx_info$tx_name[inds]
-ord = order(se[inds], decreasing=T)
-ord2 = order(se[inds], decreasing=F)
-inds = inds[ord]
-plotTranscripts(gene, gff, tx_list=txs[ord2], fig_lab="")
+	gene = "ENSG00000160211.15"
+	inds = which(tx_info$gene_id == gene)
+	txs = tx_info$tx_name[inds]
+	ord = order(se[inds], decreasing=T)
+	ord2 = order(se[inds], decreasing=F)
+	inds = inds[ord]
+	plotTranscripts(gene, gff, tx_list=txs[ord2], fig_lab="")
 
-plot(c(0,1), c(1, length(txs)+1), ty="n", ylab="", xlab="", yaxt="n", main="", xaxs="i", yaxs="i", xaxt="n")
-text(signif(counts[inds], 3), x=0.2, y=seq(length(txs)+1, 2, by=-1)-0.5)
-text(signif(se[inds], 3), x=0.5, y=seq(length(txs)+1, 2, by=-1)-0.5, col=2)
-text(signif(score[inds], 3), x=0.8, y=seq(length(txs)+1, 2, by=-1)-0.5)
-par(xpd=NA)
-text(x=c(.2, .5, .8), y=14.2, pos=1, c(expression(beta), "SE", "Uniq"), cex=2)
+	plot(c(0,1), c(1, length(txs)+1), ty="n", ylab="", xlab="", 
+		yaxt="n", main="", xaxs="i", yaxs="i", xaxt="n")
+	text(signif(counts[inds], 3), x=0.2, y=seq(length(txs)+1, 2, by=-1)-0.5)
+	text(signif(se[inds], 3), x=0.5, y=seq(length(txs)+1, 2, by=-1)-0.5, col=2)
+	text(signif(score[inds], 3), x=0.8, y=seq(length(txs)+1, 2, by=-1)-0.5)
+	par(xpd=NA)
+	text(x=c(.2, .5, .8), y=14.2, pos=1, c(expression(beta), "SE", "Uniq"), cex=2)
 dev.off()
 

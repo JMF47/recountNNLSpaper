@@ -1,6 +1,8 @@
-##### Script to quantify the geuvadis ERR188410
+##### Script to quantify the geuvadis sample ERR188410
+
 cd /dcl01/leek/data/ta_poc/
 f=ERR188410
+
 ##########################################################################################
 # HISAT2(2.0.5)-StringTie(1.3.3b)
 ##########################################################################################
@@ -69,24 +71,19 @@ cd ~/Salmon-0.8.2_linux_x86_64/bin/
 
 base_dir = "/dcl01/leek/data/ta_poc/"
 setwd(base_dir)
-##### Quantify using recountNNLS
-##### Then compile and compare quantification between methods
-
 ##########################################################################################
 # recountNNLS
 ##########################################################################################
 library(recountNNLS)
 pheno = processPheno('ERP001942')
-	pheno = pheno[pheno$run %in% c("ERR188410", "ERR188412"),]
 rse_tx = recountNNLS(pheno, cores=20)
-save(rse_tx, file="~/ERR188410.rda")
+save(rse_tx, file="/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 
 ##########################################################################################
 # compile results
 ##########################################################################################
 rm(list=ls())
 library(rtracklayer); library(recountNNLS); library(SummarizedExperiment)
-# load("~/ERR188410.rda")
 load("/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 sample = "ERR188410"
 tx_info = rowData(rse_tx)
