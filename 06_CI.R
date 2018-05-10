@@ -1,4 +1,4 @@
-##### Contains the code used to evluate the performance of confidence intervals
+##### Contains the code used to evaluate the performance of confidence intervals
 
 rm(list=ls())
 library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrings); library(Rsamtools); 

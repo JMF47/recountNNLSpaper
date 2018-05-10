@@ -8,7 +8,6 @@ for(id in ids){
       scenario = str_split_fixed(id, "_", n=2)
       rl = scenario[1]
       paired = scenario[2]
-      # load(paste0("~/downloads/preprint_update/", rl, "_", paired, "_info.rda"))
       load(paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/", id, "/", rl, "_", paired, "_info.rda"))
       ses = recountNNLSse
       scores = recountNNLSscore

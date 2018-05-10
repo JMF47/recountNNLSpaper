@@ -72,7 +72,7 @@ cd ~/Salmon-0.8.2_linux_x86_64/bin/
 base_dir = "/dcl01/leek/data/ta_poc/"
 setwd(base_dir)
 ##########################################################################################
-# recountNNLS
+# recountNNLS (R)
 ##########################################################################################
 library(recountNNLS)
 pheno = processPheno('ERP001942')
@@ -80,7 +80,7 @@ rse_tx = recountNNLS(pheno, cores=20)
 save(rse_tx, file="/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 
 ##########################################################################################
-# compile results
+# compile results (R)
 ##########################################################################################
 rm(list=ls())
 library(rtracklayer); library(recountNNLS); library(SummarizedExperiment)
