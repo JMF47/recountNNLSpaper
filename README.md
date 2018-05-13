@@ -10,9 +10,9 @@ The scripts are presented in processing order.
 04_get_bundles.R -> A R script to determine which genes need to be estimated together because they have overlapping mapping of reads.
 05_simulate.R -> A R script that contains the code for the simulation studies of different methods using transcripts from protein-coding genes on chr1 and chr14.
 06_CI.R -> A R script that contains the code for the simulation studies of the performance of our method's confidence intervals.
-07_Geuvadis.sh -> A hybrid shell and R script that details how we quantified the ERR188410 sample of the Geuvadis Consortium dataset using the methods covered in the paper.
+07_Geuvadis.sh -> A shell R script that details how we quantified the ERR188410 sample of the Geuvadis Consortium dataset using the methods covered in the paper.
 08_simulate_rsem.R -> A R script that contains details how we evaluated the performance of the chosen models when ground truth is simulated using the RSEM estimates of sample ERR188410.
-09_graphics_preprint.R -> A R script that covers all of the plots created for the analysis (except the MA plots in the supplement).
+09_figures_tables.R -> A R script that creates the plots and tables presented (except the MA plots in the supplement).
 10_graphics_MA.R -> A R script that produces the MA plots included in the supplement, as well as a short snippet to collect read lengths of samples in recount2.
 11_run_all.R -> A R script that runs recountNNLS on all recount samples (minus TCGA and GTEX).
 12_run_TCGA.R -> A R script that runs recountNNLS on the TCGA samples.
