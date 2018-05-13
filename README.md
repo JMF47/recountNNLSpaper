@@ -5,21 +5,35 @@ links:
 The scripts are presented in processing order.
 
 01_annotation.R -> A R script that downloads the references used, and processes them for subsequent use.
+
 02_indices.sh -> A shell script for downloading the genome as well as creating the alignment/quantification indices needed.
+
 03_getPm.R -> A R script to estimate the probability matrices of each transcript to create observed feature counts.
+
 04_get_bundles.R -> A R script to determine which genes need to be estimated together because they have overlapping mapping of reads.
+
 05_simulate.R -> A R script that contains the code for the simulation studies of different methods using transcripts from protein-coding genes on chr1 and chr14.
+
 06_CI.R -> A R script that contains the code for the simulation studies of the performance of our method's confidence intervals.
+
 07_Geuvadis.sh -> A shell R script that details how we quantified the ERR188410 sample of the Geuvadis Consortium dataset using the methods covered in the paper.
+
 08_simulate_rsem.R -> A R script that contains details how we evaluated the performance of the chosen models when ground truth is simulated using the RSEM estimates of sample ERR188410.
+
 09_figures_tables.R -> A R script that creates the plots and tables presented (except the MA plots in the supplement).
+
 10_graphics_MA.R -> A R script that produces the MA plots included in the supplement, as well as a short snippet to collect read lengths of samples in recount2.
+
 11_run_all.R -> A R script that runs recountNNLS on all recount samples (minus TCGA and GTEX).
+
 12_run_TCGA.R -> A R script that runs recountNNLS on the TCGA samples.
+
 13_run_GTEX.R -> A R script that runs recountNNLS on the GTEX samples.
+
 14_QCmetrics.R -> Short code snippet that we used checking how our fragment/read estimates correspond to overall mapped fragments/reads.
 
-# Session info ----------------------------------------------------------------------------------------------------------
+# Session info 
+----------------------------------------------------------------------------------------------------------
  setting  value                                 
  version  R version 3.4.4 RC (2018-03-09 r74376)
  system   x86_64, linux-gnu                     
