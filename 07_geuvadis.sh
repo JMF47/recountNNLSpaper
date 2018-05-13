@@ -80,7 +80,7 @@ rse_tx = recountNNLS(pheno, cores=20)
 save(rse_tx, file="/dcl01/leek/data/ta_poc/recount_out/rse_new/ERP001942/rse_tx.RData")
 
 ##########################################################################################
-# compile results (R)
+# compile results (R - table 2)
 ##########################################################################################
 rm(list=ls())
 library(rtracklayer); library(recountNNLS); library(SummarizedExperiment)

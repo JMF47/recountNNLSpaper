@@ -1,4 +1,4 @@
-##### Contains the code used to evaluate the performance of confidence intervals
+##### Contains the code used for confidence interval performance evaluation
 
 rm(list=ls())
 library(GenomicRanges); library(rtracklayer); library(stringr); library(Biostrings); library(Rsamtools); 
@@ -48,9 +48,10 @@ for(paired in 1:2){
 		count_mat = matrix(rep(reads, samp_size), ncol=samp_size, byrow=F)
 		rownames(count_mat) = TxL_sim$tx_name
 		if(paired==2){
-			save(count_mat, file=paste0("~/CI_cal_countmat_", rl, "_2.rda"))
+			save(count_mat, 
+				file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/CI/CI_cal_countmat_", rl, "_2.rda"))
 		}else{
-			save(count_mat, file=paste0("~/CI_cal_countmat_", rl, ".rda"))
+			save(count_mat, file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/CI/CI_cal_countmat_", rl, ".rda"))
 		}
 		polyester::simulate_experiment_countmat('tx.fasta', 
 			readmat=count_mat, outdir="reads", paired=(paired==2), readlen=rl)	
@@ -90,88 +91,11 @@ for(paired in 1:2){
 		pheno = processPheno(table)
 		rse_tx = recountNNLS(pheno, jx_file=jx_file, cores=20)
 		if(paired==2){
-			save(rse_tx, file=paste0("~/CI_", rl, "_2.rda"))	
+			save(rse_tx, file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/CI/CI_", rl, "_2.rda"))	
 		}else{
-			save(rse_tx, file=paste0("~/CI_", rl, ".rda"))	
+			save(rse_tx, file=paste0("/dcl01/leek/data/ta_poc/geuvadis/simulation/CI/CI_", rl, ".rda"))	
 		}
 	}
 }
 
-#### Code for figure showing number of transcripts that attains 
-### 95% coverage with different read lengths
-rm(list=ls())
-means_list = list()
-for(paired in 1:2){
-	for(i in 1:length(rls)){
-		rl = rls[i]
-		if(paired==1){
-			load(paste0("~/CI_cal_countmat_", rl, ".rda"))
-			load(paste0("~/CI_", rl, ".rda"))	
-		}else{
-			load(paste0("~/CI_cal_countmat_", rl, "_2.rda"))
-			load(paste0("~/CI_", rl, "_2.rda"))	
-		}
-		rse_sub = rse_tx[match(rownames(count_mat), rownames(rse_tx)),]
-		bs = assays(rse_sub)$fragments
-		se = assays(rse_sub)$ses
-		score = assays(rse_sub)$scores
-		df = assays(rse_sub)$df
-		stats = qt(0.975, as.numeric(df[,1]))
-		cil = bs-stats*se
-		ciu = bs+stats*se
-		hit = (cil<=count_mat)*(ciu>=count_mat)
 
-		hits = apply(hit, 1, mean)
-		score_cat = cut(score[,1], seq(0, 1, by=0.1))
-
-		thresholds = seq(0.9, 1, by=0.01)
-		means = NULL
-		for(thresh in thresholds){
-			means = rbind(means,  by(hits, score_cat, function(x) mean(x<thresh, na.rm=T)))
-		}
-		rownames(means) = thresholds
-		means_list[[(i+(paired-1)*5)]] = means
-	}
-}
-
-### Ploting
-png(paste0('~/graphics/CI_cal.png'), width=900, height=300, type="cairo")
-par(mfrow=c(1,3))
-	# Panel A
-	par(ps = 12, cex = 1, cex.main = 1)
-	par(mar=c(4, 4, 4, 2))
-	hist(score, breaks=seq(0, 1, by=0.1), xlab="Uniqueness", 
-		main="Distribution of Uniqueness Scores", col=0)
-	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-	text(x=u[2]-(u[2]-u[1])/20, y=u[4]-(u[4]-u[3])/20, label="(A)")
-	hist(score, breaks=seq(0, 1, by=0.1), add=T, col=0)
-	par(mar=c(4, 6, 4, 1))
-	par(mar=c(4, 4, 4, 0))
-
-	# Panel B
-	ind=6
-	plot(means_list[[1]][ind,], ylab="Proportion of txs w/o nominal coverage", 
-		xlab="", xaxt="n", main="95% CI Single-End", pch=19, ty="b", ylim=c(0, max(means_list[[1]][6,])))
-	for(i in 2:length(rls)){
-		points(means_list[[i]][ind,], col=i, pch=19, ty="b")
-	}
-	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-	axis(side=1, at = 1:length(colnames(means)), labels = colnames(means), las=2)
-	text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-	text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(B)")
-	legend('topright', legend = rls[1:3], col=1:3, fill=1:3, cex=0.8, ncol=3)
-
-	# Panel C
-	par(mar=c(4, 0, 4, 4))
-	plot(means_list[[6]][ind,], ylab="", 
-		xlab="", xaxt="n", main="95% CI Paired-End", pch=19, ty="b", ylim=c(0, max(means_list[[1]][6,])), yaxt="n")
-	for(i in 2:length(rls)){
-		points(means_list[[(i+5)]][ind,], col=i, pch=19, ty="b")
-	}
-	u = par()$usr; rect(u[1], u[3], u[2], u[4], col=rgb(0, 0, 0, 0.2), border=NA)
-	axis(side=1, at = 1:length(colnames(means)), labels = colnames(means), las=2)
-	axis(side=4)
-	text(x=mean(u[1:2]), y=u[3], labels="Uniqueness", pos=3)
-	text(x=u[1]+(u[2]-u[1])/20, y=u[3]+(u[4]-u[3])/20, label="(C)")
-	legend('topleft', legend = rls[4:5], col=4:5, fill=4:5, ncol=2, cex=0.8)
-dev.off()

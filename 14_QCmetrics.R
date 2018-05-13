@@ -13,7 +13,6 @@ for(unique_id in unique_ids){
 	message(which(unique_ids == unique_id))
 	out_dir = paste0("/dcl01/leek/data/ta_poc/recount_out/rse_new/", unique_id)
 	out_file = paste0(out_dir, "/rse_tx.RData")
-	# pheno = processPheno(unique_id, local=TRUE)
 	load(out_file)
 	pheno = colData(rse_tx)
 	total_reads = pheno$reads_downloaded/(pheno$paired_end+1)

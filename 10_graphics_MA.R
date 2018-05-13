@@ -1,5 +1,5 @@
 ####################################################
-### MA Plots
+### MA Plots (supplements)
 ####################################################
 cs = 0.15
 ids = c("37_1", "37_2", "50_1", "50_2", "75_1", "75_2", "100_1", "100_2", "150_1", "150_2")
@@ -16,7 +16,7 @@ for(id in ids){
       mlab = "MAE"
       metric = round(apply(abs(err), 2, mean, na.rm=T), 3)
       
-      png(paste0('~/graphics/', id, "_MA.png"), 
+      png(paste0('/dcl01/leek/data/ta_poc/graphics/', id, "_MA.png"), 
             width=400, height=800, units = "px", pointsize=18, type="cairo")
       layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
             heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
@@ -71,13 +71,13 @@ for(id in ids){
 ####################################################
 ### MA Plots - RSEM-based
 ####################################################
-load("~/rsem_based_0.rda")
+load("/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/rsem_based_0.rda")
 out = cbind(out,out[,4])
 err = out-count_mat[,1]
 mlab = "MAE"
 metric = round(apply(abs(err), 2, mean, na.rm=T), 3)
 
-png(paste0('~/graphics/RSEM_MA.png'), 
+png(paste0('/dcl01/leek/data/ta_poc/graphics/RSEM_MA.png'), 
       width=400, height=800, units = "px", pointsize=18, type="cairo")
 layout(matrix(c(1, 1, 1, 1, 1, 1, 1, 2:8, 9:15), nrow=7, byrow=F), 
       heights=c(1, 4, 4, 4, 4, 4, 1), widths=c(1, 4, 0.5))
@@ -101,8 +101,6 @@ for(i in 1:5){
 
       plot(M~A, ylim=c(-10, 10), xlim=c(0, 18), col=color, 
             main = "", xlab="MA Plot: Truth - LM", xaxt="n", yaxt="n", pch=19, cex=cs)
-      # abline(h=0, col=2)
-      # abline(0, 1, lty=2, col=2); abline(0, -1, lty=2, col=2)
       axis(side=2, at = log(c(1/1000, 1/100, 1/10, 1, 10, 100, 1000),2), 
             labels=parse(text = c('10^-3', '10^-2', '10^-1', '1', '10', '10^2', '10^3')) , las=2)
       window = par()$usr
@@ -129,36 +127,3 @@ text(x=0.6, y=0.5, srt=270, "Salmon", cex=1.4, pos=3)
 
 par(xpd=F)
 dev.off()
-
-####################################################
-### Distribution of read lengths
-####################################################
-url_table <- recount::recount_url
-projects = unique(url_table$project)
-rl_info = NULL
-for(project in projects){
-      message(which(projects==project))
-      phenoFile <- recount::download_study(project = project, type = 'phenotype',download = FALSE)
-      pheno <- .read_pheno(phenoFile, project)
-      info = pheno[,c("project", "run", "avg_read_length", "paired_end")]
-      rl_info = rbind(rl_info, info)
-}
-rl_info = rl_info[-which(rl_info$project=="TCGA"),]
-rl_info2 = rl_info; rl_info2$avg_read_length = rl_info$avg_read_length/((rl_info$paired_end==TRUE)+1)
-data(tcga_meta)  
-info =  tcga_meta[,c("project", "run", "rls", "paired_end")]   
-colnames(info) = colnames(rl_info)
-full_info = rbind(rl_info2, info)
-save(full_info, file="~/rl_info.rda")
-
-### Local
-load("~/downloads/rl_info.rda")
-rls_avail = c(37, 50, 75, 100, 150)
-full_info$rls_assign = sapply(full_info$avg_read_length, function(x) rls_avail[which.min(abs(rls_avail-x))])
-table(paste0(full_info$rls_assign, "-", full_info$paired_end))
-table(full_info$rls_assign)
-table(full_info$paired_end)
-
-
-
-

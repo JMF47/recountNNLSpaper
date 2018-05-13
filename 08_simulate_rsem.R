@@ -167,5 +167,5 @@ tx_list = stringr::str_replace(tx_list, "_PAR_Y", "")
 salmon_mat = match(tx_list, salmon$Name)
 	out = cbind(out, sl = salmon$NumReads[salmon_mat])
 	out = data.frame(out)
-save(out, count_mat, se, score, df, file="~/rsem_based_0.rda")
+save(out, count_mat, se, score, df, file="/dcl01/leek/data/ta_poc/geuvadis/simulation/rsem_based/rsem_based_0.rda")
 
